@@ -1,0 +1,158 @@
+{
+  "type": "event",
+  "event_name": "sms_host_notification",
+  "payload": {
+    "hipchat_account": null,
+    "entry": {
+      "id": 39,
+      "signed_in_time_utc": "2016-04-14 20:12:32",
+      "signed_in_time_local": "2016-04-14 14:12:32",
+      "signed_out_time_utc": "",
+      "signed_out_time_local": "",
+      "your_full_name": "David B",
+      "your_email_address": "",
+      "your_company": "",
+      "host": "Jeramie Davis",
+      "nda_pdf_url": "",
+      "photo_url": "",
+      "private_notes": "",
+      "Custom Fields": [
+        {
+          "Your Full Name": "David B"
+        },
+        {
+          "Your Email Address": ""
+        },
+        {
+          "Your Company": ""
+        },
+        {
+          "Host": "Jeramie Davis"
+        }
+      ],
+      "full_name": "David B",
+      "is_delivery": false
+    },
+    "host_name": "Jeramie Davis",
+    "host_email": "mike@bechtelar.net",
+    "host_phone_number": "+17194289439",
+    "visitor_name": "David B",
+    "checkin_time": "2016-04-14T14:12:32.000-06:00",
+    "location_name": "Cool Chip",
+    "delegated": false,
+    "assistant_name": null,
+    "ratelimited": false,
+    "numbers": [
+      "+17194289439"
+    ],
+    "message": "Hey Jeramie! David B is here for you at the Cool Chip front desk."
+  },
+  "location": {
+    "id": 1,
+    "company_id": 1,
+    "master_location_id": null,
+    "saml_location_id": "8281d29f7160cee7e578",
+    "legacy_email": null,
+    "company_name": "Cool Chip",
+    "company_name_override": null,
+    "authentication_token": "46f2d232bfea2cf398e4ece8e8f44e26",
+    "eventbrite_access_token": null,
+    "time_zone": "America/Denver",
+    "invites_secret_link": "8fe4d5811441894e1321",
+    "security_desk_link": "15fb59b319c4486b5495",
+    "address": "12109 N 5th St, Parker, CO, United States",
+    "notes": "**This is an example pre-registration invite you can send visitors**\n\n# Getting here\n\n## Public transportation\nWe recommend taking BART to the Montgomery Station or Muni 10-Townsend to 3rd & Bryant.\n\n## Biking\n\nWe offer on-site bike parking for visitors. Bring you bike on up to the 2nd floor.\n\n## Driving\n\nWe recommend parking in the XYZ parking lot. Daily parking is available at very reasonable rates. If you are visiting as an interview candidate, please contact your recruiter to coordinate parking.\n\n# Arriving at Envoy\n\nWe are located on the second floor. Please take the elevators and check in using the iPad in our lobby. Your host will be notified that you have arrived.\n\n## Wi-Fi\n\nNetwork: Envoy Guest\n\nPassword: #2p1Gi^&zB3m\n\n# Important Notes\n\nWhen you arrive at our building, we'll buzz you in. Take the elevator to the third floor and walk on in! Just make sure you \"sign with Envoy\" when you get here :)\n\n# Additional questions?\n\nPlease email reception@envoy.com\n",
+    "send_invite_to_visitor": true,
+    "webhook_url": "",
+    "api_key": "f920768e2bed71544d560ccf8a6a6042",
+    "note": null,
+    "latitude": 39.538022,
+    "longitude": -104.817747,
+    "app_version": {
+      "spec": "1.8.0",
+      "match": {}
+    },
+    "contact_full_name": null,
+    "contact_email": null,
+    "has_webhook": false,
+    "cc_receptionist_enabled": false,
+    "name": "HQ",
+    "active": true,
+    "employees_csv_file_name": null,
+    "employees_csv_content_type": null,
+    "employees_csv_file_size": null,
+    "employees_csv_updated_at": null,
+    "referring_url": null,
+    "landing_url": null,
+    "locale": "en",
+    "address_line_1": "12109 North 5th Street",
+    "address_line_2": "",
+    "city": "Parker",
+    "zip": "80134",
+    "country": "US",
+    "state": "CO",
+    "bcc_email": null,
+    "employees_last_sync_at": null,
+    "employees_sync_message": null,
+    "legacy_user_id": null,
+    "created_at": "2016-03-24T01:21:40.994Z",
+    "updated_at": "2016-03-24T01:29:31.018Z",
+    "legacy_master_location_id": null,
+    "send_nda_invite": false,
+    "dashboard_fields": [
+      {
+        "name": "Document",
+        "component_name": "document-column"
+      },
+      {
+        "name": "Host Notification",
+        "component_name": "host-notification-column"
+      },
+      {
+        "name": "Signed In",
+        "component_name": "signed-in-column"
+      },
+      {
+        "name": "Signed Out",
+        "component_name": "signed-out-column"
+      }
+    ],
+    "meeting_place_name": null,
+    "office365_webhook_url": null
+  },
+  "company": {
+    "id": 1,
+    "name": "Cool Chip",
+    "created_at": "2016-03-24T01:21:40.693Z",
+    "updated_at": "2016-04-14T18:07:08.896Z",
+    "saml_fingerprint": null,
+    "saml_http_url": null,
+    "stripe_customer_id": "cus_88eTvtOE1b3A8G",
+    "stripe_plan_id": "premium-monthly",
+    "stripe_total_revenue": null,
+    "stripe_canceled": false,
+    "trial_end_date": "2016-03-24T01:28:31.725Z",
+    "cached_quantity": 1,
+    "slack_access_token": null,
+    "slack_team": null,
+    "host_notification_rate": 0,
+    "receipt_email_opted_in": false,
+    "pre_registration_host_confirmation": false,
+    "invite_email_to_visitor": true,
+    "active": true,
+    "procurement_source": "Envoy in a Box",
+    "referral": null,
+    "employees_last_sync_at": null,
+    "employees_sync_provider": null,
+    "employees_sync_state": "never",
+    "employees_sync_mode": "off",
+    "onboarding_status": "complete",
+    "onboarding_locations_count": "2-5",
+    "gtalk_enabled": false,
+    "plan_intent": "basic",
+    "employees_sync_started_at": null,
+    "is_beta": false,
+    "slack_bot_user_id": null,
+    "slack_bot_access_token": null
+  }
+}

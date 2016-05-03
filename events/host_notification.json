@@ -1,0 +1,27 @@
+{
+    "type": "event",
+    "event_name": "host_notification",
+    "payload": {
+      "message": "Hey Jeramie! David B is here for you at the Cool Chip front desk.",
+      "guest": {
+        "id":1,
+        "name": "John Doe",
+        "email": "johndoe@example.com",
+        "sms_number": "+17194289439"
+      }
+    },
+    "user": {
+      "id":99,
+      "name": "Manager Doe",
+      "email": "managerdoe@example.com",
+      "sms_number": "+17194289439"
+    },
+    "location": {
+      "id":1,
+      "name": "Blue Lake"
+    },
+    "company": {
+      "id":1,
+      "name": "Acme Corp."
+    }
+}

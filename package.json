@@ -1,0 +1,29 @@
+{
+  "name": "envoy-platform-sdk",
+  "version": "1.0.0",
+  "description": "The Official Envoy:Platform SDK for NodeJS. Use for creating plugins.",
+  "main": "index.js",
+  "private": true,
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/envoy/envoy-platform-sdk-nodejs.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/envoy/envoy-platform-sdk-nodejs/issues"
+  },
+  "homepage": "https://github.com/envoy/envoy-platform-sdk-nodejs#readme",
+  "bin": {
+    "invoke": "./bin/invoke"
+  },
+  "dependencies": {
+    "app-root-path": "^1.0.0",
+    "dotenv": "^2.0.0",
+    "grunt": "^1.0.1",
+    "urijs": "^1.18.0"
+  }
+}

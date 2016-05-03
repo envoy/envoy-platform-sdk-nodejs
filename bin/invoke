@@ -1,0 +1,68 @@
+#!/usr/bin/env node
+
+/*
+ * # Virtual Lambda Invoke Script
+ * This script allows you to imitate the lambda execution of your plugin
+ * without actually having to deploy it to lambda. 
+ */
+var path = require('path');
+var fs = require('fs');
+var _root = require('app-root-path');
+
+var options = _root.require('/envoy-manifest.json');
+
+var cwd;
+var response = {
+    function_error: null,
+    payload: null,
+    status_code: 200
+}
+
+function log(val) {
+    process.stdout.write(val)
+}
+
+function returnValue() {
+    process.stdout.write("------%%------\n")
+    var out = JSON.stringify(response);
+    process.stdout.write(out);
+}
+
+var context = {
+    done: function (error, result) {
+        if (error === null || typeof(error) === 'undefined') {
+            context.succeed(result);
+        } else {
+            context.fail(error);
+        }
+    },
+    succeed: function (result) {
+        response.payload = result;
+        returnValue();
+    },
+    fail: function (error) {
+        response.function_error = 'Handled';
+        response.status_code = 500;
+        response.payload = error;
+        returnValue();
+    },
+    awsRequestId: 'LAMBDA_INVOKE',
+    logStreamName: 'LAMBDA_INVOKE',
+};
+
+
+try {
+    if(process.argv[3]) {
+        var event = JSON.parse(process.argv[3]);
+    } else {
+        throw new Error("No event payload.")
+    }
+
+    var lambda = _root.require('/index.js');
+    lambda[options.handler || 'handler'](event, context);
+} catch(e) {
+    response.function_error = 'Unhandled'
+    response.status_code = 500;
+    response.payload = e.stack;
+    returnValue()
+}

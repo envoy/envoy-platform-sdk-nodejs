@@ -43,7 +43,7 @@ var context = {
     fail: function (error) {
         response.function_error = 'Handled';
         response.status_code = 500;
-        response.payload = error;
+        response.payload = {errorMessage: error};
         returnValue();
     },
     awsRequestId: 'LAMBDA_INVOKE',

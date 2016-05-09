@@ -47,7 +47,7 @@ Platform.prototype._handleRoute = function (event, context) {
 Platform.prototype.handle = function (event, fn) {
   this._handlers[event] = fn;
 }
-Platform.prototype.getJobLink = function (path) {
+Platform.prototype.getJobLink = function (path,localhost) {
   if(!this.req.job) {
     throw new Error("No job associated with this request.");
   }
@@ -56,7 +56,7 @@ Platform.prototype.getJobLink = function (path) {
   }
   url = URI(path).absoluteTo('/platform/'+this.config.key+'/');
   url.protocol('http')
-  url.host("localhost:3000")
+  url.host(localhost && localhost || "localhost:3000")
   query = url.search(true)
   query._juuid = this.req.job.id;
   url.search(query)

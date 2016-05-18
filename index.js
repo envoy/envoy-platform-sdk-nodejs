@@ -48,6 +48,12 @@ Platform.prototype.handle = function (event, fn) {
   this._handlers[event] = fn;
 }
 Platform.prototype.getJobLink = function (path,localhost) {
+  if(!localhost) {
+    localhost = 'app.envoy.com'
+    protocol = 'https'
+  } else {
+    protocol = 'http'
+  }
   if(!this.req.job) {
     throw new Error("No job associated with this request.");
   }
@@ -55,8 +61,8 @@ Platform.prototype.getJobLink = function (path,localhost) {
     throw new Error("No plugin key in manifest.json.");
   }
   url = URI(path).absoluteTo('/platform/'+this.config.key+'/');
-  url.protocol('http')
-  url.host(localhost && localhost || "localhost:3000")
+  url.protocol(protocol)
+  url.host(localhost)
   query = url.search(true)
   query._juuid = this.req.job.id;
   url.search(query)

@@ -1,14 +1,25 @@
 var Request = require('./lib/request');
 var Response = require('./lib/response');
+var utils = require('./lib/utils');
 var URI = require('urijs');
+var fs = require('fs');
 
 function Platform(config) {
   this.config = config;
   this._routes = {};
-  this._handlers = {};
+  this._workers = {};
   this._interceptors = {};
+  var self = this;
+
+  utils.loadHandlers(this.config.baseDir + '/routes', function(name, handler) {
+    self.registerRoute(name, handler);
+  });
+
+  utils.loadHandlers(this.config.baseDir + '/workers', function(name, handler) {
+    self.registerWorker(name, handler);
+  });
 }
-Platform.prototype.handler = function () {
+Platform.prototype.getHandler = function () {
   var self = this;
   return function (event, context, callback) {
     self.res = new Response(self, context);
@@ -33,7 +44,7 @@ Platform.prototype.handler = function () {
     }
   }
 }
-Platform.prototype.route = function (name, fn) {
+Platform.prototype.registerRoute = function (name, fn) {
   this._routes[name] = fn;
 }
 Platform.prototype._handleRoute = function (event, context) {
@@ -44,8 +55,8 @@ Platform.prototype._handleRoute = function (event, context) {
   var fn = this._routes[headers.route];
   fn.call(this, this.req, this.res);
 }
-Platform.prototype.handle = function (event, fn) {
-  this._handlers[event] = fn;
+Platform.prototype.registerWorker = function (event, fn) {
+  this._workers[event] = fn;
 }
 Platform.prototype.getJobLink = function (path,localhost) {
   if(!localhost) {
@@ -70,14 +81,13 @@ Platform.prototype.getJobLink = function (path,localhost) {
 }
 Platform.prototype._handleEvent = function (event, context) {
   headers = event.request_meta;
-  if (typeof this._handlers[headers.event] !== 'function') {
+  if (typeof this._workers[headers.event] !== 'function') {
     throw new Error("Invalid handler configuration [" + headers.event + "]");
   }
-  var fn = this._handlers[headers.event];
+  var fn = this._workers[headers.event];
   fn.call(this, this.req, this.res);
 }
 Platform.prototype.intercept = function (event, fn) {
   this._interceptors[event] = fn;
 }
 module.exports = Platform;
-

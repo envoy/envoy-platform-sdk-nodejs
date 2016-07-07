@@ -10,7 +10,6 @@ function Platform(config) {
   this._workers = {};
   this._interceptors = {};
   var self = this;
-
   utils.loadHandlers(this.config.baseDir + '/routes', function(name, handler) {
     self.registerRoute(name, handler);
   });

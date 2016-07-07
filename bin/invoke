@@ -69,8 +69,7 @@ try {
     }
 
   }
-  // console.log(process.cwd());
-  var lambda = require(process.cwd()+'/index.js');
+  var lambda = require((process.env['APP_ROOT_PATH'] || process.cwd())+'/index.js');
   lambda[options.handler || 'handler'](event, context);
 } catch(e) {
     response.function_error = 'Unhandled'

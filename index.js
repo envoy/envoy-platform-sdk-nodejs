@@ -5,7 +5,7 @@ var URI = require('urijs');
 var fs = require('fs');
 
 function Platform(config) {
-  this.config = config;
+  this.config = utils.renderEnvironmentVariablesToConfig(config);
   this._routes = {};
   this._workers = {};
   this._interceptors = {};

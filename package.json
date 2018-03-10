@@ -21,7 +21,6 @@
     "invoke": "./bin/invoke"
   },
   "dependencies": {
-    "app-root-path": "^1.0.0",
     "urijs": "^1.18.0"
   }
 }

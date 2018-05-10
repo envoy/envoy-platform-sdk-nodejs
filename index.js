@@ -31,6 +31,16 @@ function Platform(config) {
   });
   registerUnhandledExceptionHandler()
 }
+Platform.prototype.handleError = function (event, e) {
+  switch (event.name) {
+    case 'route':
+      this.res.error(e);
+      break;
+    case 'event':
+      this.res.job_fail('Unhandled Exception', e.message || 'Unhandled Exception', e);
+      break;
+  }
+}
 Platform.prototype.getHandler = function () {
   var self = this;
   return function (event, context, callback) {
@@ -43,23 +53,20 @@ Platform.prototype.getHandler = function () {
       if (!event.name) {
         throw new Error("Event issued did not include action.")
       }
+      var ret
       switch (event.name) {
       case 'route':
-        self._handleRoute(event, context);
+        ret = self._handleRoute(event, context);
         break;
       case 'event':
-        self._handleEvent(event, context);
+        ret = self._handleEvent(event, context);
         break;
+      }
+      if (ret instanceof Promise) {
+        ret.catch(e => self.handleError(event, e))
       }
     } catch (e) {
-      switch (event.name) {
-      case 'route':
-        self.res.error(e);
-        break;
-      case 'event':
-        self.res.job_fail('Unhandled Exception', e.message || 'Unhandled Exception', e);
-        break;
-      }
+      self.handleError(event, e)
     }
   }
 }
@@ -72,7 +79,7 @@ Platform.prototype._handleRoute = function (event, context) {
     throw new Error("Invalid route configuration.");
   }
   var fn = this._routes[headers.route];
-  fn.call(this, this.req, this.res);
+  return fn.call(this, this.req, this.res);
 }
 Platform.prototype.registerWorker = function (event, fn) {
   this._workers[event] = fn;
@@ -104,7 +111,7 @@ Platform.prototype._handleEvent = function (event, context) {
     throw new Error("Invalid handler configuration [" + headers.event + "]");
   }
   var fn = this._workers[headers.event];
-  fn.call(this, this.req, this.res);
+  return fn.call(this, this.req, this.res);
 }
 Platform.prototype.intercept = function (event, fn) {
   this._interceptors[event] = fn;

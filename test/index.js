@@ -56,6 +56,33 @@ describe('index', function () {
     expect(args.meta.set_job_failure_message).to.equal('no')
     expect(args.body.message).to.equal('no')
   })
+  it('route should call .error in case of unhandled asynchronous promise error', function (done) {
+    let context = {
+      done: sinon.spy(),
+      succeed: sinon.spy(),
+      fail: sinon.spy(),
+      awsRequestId: 'LAMBDA_INVOKE',
+      logStreamName: 'LAMBDA_INVOKE'
+    }
+    let routeEvent = { name: "route", request_meta: { route: "welcome" } }
+    let Sdk = proxyquire('../index', {})
+    let platformInstance = new Sdk({})
+    platformInstance.registerRoute('welcome', (req, res) => { return Promise.reject(new Error('no')) })
+    let handler = platformInstance.getHandler()
+    handler(routeEvent, context)
+    setTimeout(() => {
+      try {
+        expect(context.fail).to.have.been.called()
+        let failString = context.fail.args[0][0]
+        let res = JSON.parse(failString)
+        expect(res.meta.status).to.equal(500)
+        expect(res.body.message).to.equal('no')
+        done()
+      } catch(e) {
+        done(e)
+      }
+    }, 500)
+  })
   it.skip('route should call .error in case of unhandled asynchronous error', function (done) {
     sandbox.stub(process, 'exit');
     let context = {

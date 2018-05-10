@@ -6,7 +6,6 @@ const chai = require('chai')
 chai.use(dirtyChai)
 chai.use(sinonChai)
 const expect = chai.expect
-const routeEvent = require('../events/generic.json')
 let sandbox = null
 
 describe('index', function () {
@@ -24,6 +23,7 @@ describe('index', function () {
       awsRequestId: 'LAMBDA_INVOKE',
       logStreamName: 'LAMBDA_INVOKE'
     }
+    let routeEvent = { name: "route", request_meta: { route: "welcome" } }
     let Sdk = proxyquire('../index', {})
     let platformInstance = new Sdk({})
     platformInstance.registerRoute('welcome', (req, res) => { throw new Error('no') })
@@ -35,7 +35,28 @@ describe('index', function () {
     expect(res.meta.status).to.equal(500)
     expect(res.body.message).to.equal('no')
   })
-  it('route should call .error in case of unhandled asynchronous error', function (done) {
+  it('worker should call .job_failed in case of unhandled synchronous error', function () {
+    let context = {
+      done: sinon.spy(),
+      succeed: sinon.spy(),
+      fail: sinon.spy(),
+      awsRequestId: 'LAMBDA_INVOKE',
+      logStreamName: 'LAMBDA_INVOKE'
+    }
+    let workerEvent = { name: 'event', request_meta: { event: 'welcome' } }
+    let Sdk = proxyquire('../index', {})
+    let platformInstance = new Sdk({})
+    platformInstance.registerWorker('welcome', (req, res) => { throw new Error('no') })
+    let handler = platformInstance.getHandler()
+    handler(workerEvent, context)
+    expect(context.succeed).to.have.been.called()
+    let args = context.succeed.args[0][0]
+    expect(args.meta.set_job_status).to.equal('failed')
+    expect(args.meta.set_job_status_message).to.equal('Unhandled Exception')
+    expect(args.meta.set_job_failure_message).to.equal('no')
+    expect(args.body.message).to.equal('no')
+  })
+  it.skip('route should call .error in case of unhandled asynchronous error', function (done) {
     sandbox.stub(process, 'exit');
     let context = {
       done: sinon.spy(),

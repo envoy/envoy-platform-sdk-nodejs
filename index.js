@@ -52,7 +52,14 @@ Platform.prototype.getHandler = function () {
         break;
       }
     } catch (e) {
-      self.res.error(e);
+      switch (event.name) {
+      case 'route':
+        self.res.error(e);
+        break;
+      case 'event':
+        self.res.job_fail('Unhandled Exception', e.message || 'Unhandled Exception', e);
+        break;
+      }
     }
   }
 }

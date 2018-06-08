@@ -1,5 +1,6 @@
 var Request = require('./lib/request');
 var Response = require('./lib/response');
+var oauth = require('./lib/oauth2Routes');
 var utils = require('./lib/utils');
 var URI = require('urijs');
 var fs = require('fs');
@@ -13,10 +14,11 @@ function Platform(config) {
   utils.loadHandlers(this.config.baseDir + '/routes', function(name, handler) {
     self.registerRoute(name, handler);
   });
-
   utils.loadHandlers(this.config.baseDir + '/workers', function(name, handler) {
     self.registerWorker(name, handler);
   });
+  self.registerRoute('oauth/connect', oauth.connect);
+  self.registerRoute('oauth/callback', oauth.callback);
 }
 Platform.prototype.getHandler = function () {
   var self = this;

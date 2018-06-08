@@ -21,6 +21,7 @@
     "invoke": "./bin/invoke"
   },
   "dependencies": {
+    "client-oauth2": "^4.2.1",
     "urijs": "^1.18.0"
   }
 }

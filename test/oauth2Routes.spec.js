@@ -37,18 +37,15 @@ describe('oauth2Routes', function () {
             }
             let res = {
                 meta: sinon.spy(),
-                http_header: sinon.spy(),
-                _respond: sinon.spy()
+                redirect: sinon.spy()
             }
             oauth2.connect(req, res)
             expect(res.meta).to.have.been.calledWith('set_env', {
                 OAUTH_DEFAULT_TEMP_TOKEN: '0'
             })
-            expect(res.http_header).to.have.been.calledWith(
-                'Location',
+            expect(res.redirect).to.have.been.calledWith(
                 'https://site/authorize?response_type=code&client_id=clientid&redirect_uri=https%3A%2F%2Fnot.app.envoy.com%2Fplatform%2Fslack%2Foauth2%2Fdefault%2Fcallback&scope=a%2Cb%2Cc&state=0'
             )
-            expect(res._respond).to.have.been.calledWith(null, 301)
         })
     })
     describe('callback', function () {

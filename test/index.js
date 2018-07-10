@@ -83,31 +83,33 @@ describe('index', function () {
       }
     }, 500)
   })
-  it.skip('route should call .error in case of unhandled asynchronous error', function (done) {
-    sandbox.stub(process, 'exit');
+  it('route with job should call .job_failed in case of unhandled asynchronous promise error', function (done) {
     let context = {
       done: sinon.spy(),
       succeed: sinon.spy(),
       fail: sinon.spy(),
+      job_failed: sinon.spy(),
       awsRequestId: 'LAMBDA_INVOKE',
       logStreamName: 'LAMBDA_INVOKE'
     }
+    let routeEvent = { name: "route", request_meta: { route: "welcome", job: { id: 1 } } }
     let Sdk = proxyquire('../index', {})
     let platformInstance = new Sdk({})
-    platformInstance.registerRoute('welcome', (req, res) => {
-      setTimeout(function () { throw new Error('no') }, 500)
-    })
+    platformInstance.registerRoute('welcome', (req, res) => { return Promise.reject(new Error('no')) })
     let handler = platformInstance.getHandler()
     handler(routeEvent, context)
     setTimeout(() => {
       try {
-        expect(context.fail).to.have.been.called()
-        let failString = context.fail.args[0][0]
-        let res = JSON.parse(failString)
-        expect(res.meta.status).to.equal(500)
-        expect(res.body.message).to.equal('no')
+        expect(context.succeed).to.have.been.called()
+        let args = context.succeed.args[0][0]
+        expect(args.meta.set_job_status).to.equal('failed')
+        expect(args.meta.set_job_status_message).to.equal('Unhandled Exception')
+        expect(args.meta.set_job_failure_message).to.equal('no')
+        expect(args.body.message).to.equal('no')
         done()
-      } catch(e) { done(e) }
-    }, 600)
+      } catch(e) {
+        done(e)
+      }
+    }, 500)
   })
 })

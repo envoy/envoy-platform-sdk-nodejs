@@ -2,7 +2,6 @@ var Request = require('./lib/request');
 var Response = require('./lib/response');
 var utils = require('./lib/utils');
 var URI = require('urijs');
-var fs = require('fs');
 
 function unhandledExceptionHandler(err) {
   console.log('Caught unhandled async exception:', err)
@@ -32,13 +31,11 @@ function Platform(config) {
   registerUnhandledExceptionHandler()
 }
 Platform.prototype.handleError = function (event, e) {
-  switch (event.name) {
-    case 'route':
-      this.res.error(e);
-      break;
-    case 'event':
-      this.res.job_fail('Unhandled Exception', e.message || 'Unhandled Exception', e);
-      break;
+  if ('event' === event.name || ('route' === event.name && this.req.job)) {
+    return this.res.job_fail('Unhandled Exception', e.message || 'Unhandled Exception', e);
+  }
+  if ('route' === event.name) {
+    return this.res.error(e);
   }
 }
 Platform.prototype.getHandler = function () {

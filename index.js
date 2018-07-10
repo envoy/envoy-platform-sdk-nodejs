@@ -2,7 +2,19 @@ var Request = require('./lib/request');
 var Response = require('./lib/response');
 var utils = require('./lib/utils');
 var URI = require('urijs');
-var fs = require('fs');
+
+function unhandledExceptionHandler(err) {
+  console.log('Caught unhandled async exception:', err)
+  process.exit()
+}
+
+function registerUnhandledExceptionHandler() {
+  if (global.isUnhandledExceptionHandlerRegistered) {
+    return
+  }
+  process.on('uncaughtException', unhandledExceptionHandler);
+  global.isUnhandledExceptionHandlerRegistered = true
+}
 
 function Platform(config) {
   this.config = config;
@@ -13,10 +25,18 @@ function Platform(config) {
   utils.loadHandlers(this.config.baseDir + '/routes', function(name, handler) {
     self.registerRoute(name, handler);
   });
-
   utils.loadHandlers(this.config.baseDir + '/workers', function(name, handler) {
     self.registerWorker(name, handler);
   });
+  registerUnhandledExceptionHandler()
+}
+Platform.prototype.handleError = function (event, e) {
+  if ('event' === event.name || ('route' === event.name && this.req.job)) {
+    return this.res.job_fail('Unhandled Exception', e.message || 'Unhandled Exception', e);
+  }
+  if ('route' === event.name) {
+    return this.res.error(e);
+  }
 }
 Platform.prototype.getHandler = function () {
   var self = this;
@@ -30,16 +50,20 @@ Platform.prototype.getHandler = function () {
       if (!event.name) {
         throw new Error("Event issued did not include action.")
       }
+      var ret
       switch (event.name) {
       case 'route':
-        self._handleRoute(event, context);
+        ret = self._handleRoute(event, context);
         break;
       case 'event':
-        self._handleEvent(event, context);
+        ret = self._handleEvent(event, context);
         break;
       }
+      if (ret instanceof Promise) {
+        ret.catch(e => self.handleError(event, e))
+      }
     } catch (e) {
-      self.res.error(e);
+      self.handleError(event, e)
     }
   }
 }
@@ -52,12 +76,12 @@ Platform.prototype._handleRoute = function (event, context) {
     throw new Error("Invalid route configuration.");
   }
   var fn = this._routes[headers.route];
-  fn.call(this, this.req, this.res);
+  return fn.call(this, this.req, this.res);
 }
 Platform.prototype.registerWorker = function (event, fn) {
   this._workers[event] = fn;
 }
-Platform.prototype.getJobLink = function (path,localhost) {
+Platform.prototype.getJobLink = function (path, localhost) {
   if(!localhost) {
     localhost = 'app.envoy.com'
     protocol = 'https'
@@ -70,7 +94,7 @@ Platform.prototype.getJobLink = function (path,localhost) {
   if(!this.config.key) {
     throw new Error("No plugin key in manifest.json.");
   }
-  url = URI(path).absoluteTo('/platform/'+this.config.key+'/');
+  url = URI(path).absoluteTo('/platform/' + this.config.key + '/');
   url.protocol(protocol)
   url.host(localhost)
   query = url.search(true)
@@ -84,7 +108,7 @@ Platform.prototype._handleEvent = function (event, context) {
     throw new Error("Invalid handler configuration [" + headers.event + "]");
   }
   var fn = this._workers[headers.event];
-  fn.call(this, this.req, this.res);
+  return fn.call(this, this.req, this.res);
 }
 Platform.prototype.intercept = function (event, fn) {
   this._interceptors[event] = fn;

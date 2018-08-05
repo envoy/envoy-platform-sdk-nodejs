@@ -3,13 +3,12 @@
 /*
  * # Virtual Lambda Invoke Script
  * This script allows you to imitate the lambda execution of your plugin
- * without actually having to deploy it to lambda. 
+ * without actually having to deploy it to lambda.
  */
 var path = require('path');
 var fs = require('fs');
-var _root = require('app-root-path');
 
-var options = _root.require('/envoy-manifest.json');
+var options = {};
 
 var cwd;
 var response = {
@@ -52,14 +51,25 @@ var context = {
 
 
 try {
+  if(process.argv[2] == 'local') {
     if(process.argv[3]) {
-        var event = JSON.parse(process.argv[3]);
+      var event = JSON.parse(process.argv[3]);
     } else {
-        throw new Error("No event payload.")
+      throw new Error("No event payload.")
+    }
+  }
+  if(process.argv[2] == 'fake') {
+    var ename = process.argv[3] || 'generic';
+    if(process.argv[3]) {
+      var contents = fs.readFileSync(__dirname+'/../events/' + ename + '.json')
+      var event = JSON.parse(contents);
+    } else {
+      throw new Error("No event payload.")
     }
 
-    var lambda = _root.require('/index.js');
-    lambda[options.handler || 'handler'](event, context);
+  }
+  var lambda = require((process.env['APP_ROOT_PATH'] || process.cwd())+'/index.js');
+  lambda[options.handler || 'handler'](event, context);
 } catch(e) {
     response.function_error = 'Unhandled'
     response.status_code = 500;

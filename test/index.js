@@ -9,10 +9,10 @@ const expect = chai.expect
 let sandbox = null
 
 describe('index', function () {
-  beforeEach(function() {
+  beforeEach(function () {
     sandbox = sinon.createSandbox()
   })
-  afterEach(function() {
+  afterEach(function () {
     sandbox.restore()
   })
   it('route should call .error in case of unhandled synchronous error', function () {
@@ -23,7 +23,7 @@ describe('index', function () {
       awsRequestId: 'LAMBDA_INVOKE',
       logStreamName: 'LAMBDA_INVOKE'
     }
-    let routeEvent = { name: "route", request_meta: { route: "welcome" } }
+    let routeEvent = { name: 'route', request_meta: { route: 'welcome' } }
     let Sdk = proxyquire('../index', {})
     let platformInstance = new Sdk({})
     platformInstance.registerRoute('welcome', (req, res) => { throw new Error('no') })
@@ -64,7 +64,7 @@ describe('index', function () {
       awsRequestId: 'LAMBDA_INVOKE',
       logStreamName: 'LAMBDA_INVOKE'
     }
-    let routeEvent = { name: "route", request_meta: { route: "welcome" } }
+    let routeEvent = { name: 'route', request_meta: { route: 'welcome' } }
     let Sdk = proxyquire('../index', {})
     let platformInstance = new Sdk({})
     platformInstance.registerRoute('welcome', (req, res) => { return Promise.reject(new Error('no')) })
@@ -78,7 +78,7 @@ describe('index', function () {
         expect(res.meta.status).to.equal(500)
         expect(res.body.message).to.equal('no')
         done()
-      } catch(e) {
+      } catch (e) {
         done(e)
       }
     }, 500)
@@ -92,7 +92,7 @@ describe('index', function () {
       awsRequestId: 'LAMBDA_INVOKE',
       logStreamName: 'LAMBDA_INVOKE'
     }
-    let routeEvent = { name: "route", request_meta: { route: "welcome", job: { id: 1 } } }
+    let routeEvent = { name: 'route', request_meta: { route: 'welcome', job: { id: 1 } } }
     let Sdk = proxyquire('../index', {})
     let platformInstance = new Sdk({})
     platformInstance.registerRoute('welcome', (req, res) => { return Promise.reject(new Error('no')) })
@@ -107,7 +107,7 @@ describe('index', function () {
         expect(args.meta.set_job_failure_message).to.equal('no')
         expect(args.body.message).to.equal('no')
         done()
-      } catch(e) {
+      } catch (e) {
         done(e)
       }
     }, 500)

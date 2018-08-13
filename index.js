@@ -1,10 +1,11 @@
-var Request = require('./lib/request')
-var Response = require('./lib/response')
-var utils = require('./lib/utils')
-var URI = require('urijs')
+const Request = require('./lib/request')
+const Response = require('./lib/response')
+const utils = require('./lib/utils')
+const urijs = require('urijs')
+const logger = require('./helpers/logger')
 
 function unhandledExceptionHandler (err) {
-  console.log('Caught unhandled async exception:', err)
+  logger.error('SDK', 'Caught unhandled async exception:', err)
   process.exit()
 }
 
@@ -93,7 +94,7 @@ Platform.prototype.getJobLink = function (path, localhost) {
   if (!this.config.key) {
     throw new Error('No plugin key in manifest.json.')
   }
-  let url = URI(path).absoluteTo('/platform/' + this.config.key + '/')
+  let url = urijs(path).absoluteTo('/platform/' + this.config.key + '/')
   url.protocol(protocol)
   url.host(localhost)
   let query = url.search(true)

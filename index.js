@@ -3,6 +3,7 @@ const Response = require('./lib/response')
 const utils = require('./lib/utils')
 const urijs = require('urijs')
 const logger = require('./helpers/logger')
+const Sms = require('./lib/sms')
 
 process.env.DEBUG = process.env.DEBUG || 'envoy*'
 
@@ -42,31 +43,31 @@ Platform.prototype.handleError = function (event, e) {
   }
 }
 Platform.prototype.getHandler = function () {
-  var self = this
-  return function (event, context, callback) {
-    self.res = new Response(self, context)
-    self.req = new Request(self, event, context)
-    self.start_time = process.hrtime()
-    self.event = event
-    self.context = context
+  return async (event, context, callback) => {
     try {
+      this.res = new Response(this, context)
+      this.req = new Request(this, event, context)
+      this.envoyContext = {
+        sms: new Sms(this.req)
+      }
+      this.start_time = process.hrtime()
+      this.event = event
+      this.context = context
       if (!event.name) {
         throw new Error('Event issued did not include action.')
       }
-      var ret
-      switch (event.name) {
-        case 'route':
-          ret = self._handleRoute(event, context)
-          break
-        case 'event':
-          ret = self._handleEvent(event, context)
-          break
+      let ret = null
+      if (event.name === 'route') {
+        ret = this._handleRoute(event, context)
+      }
+      if (event.name === 'event') {
+        ret = this._handleEvent(event, context)
       }
       if (ret instanceof Promise) {
-        ret.catch(e => self.handleError(event, e))
+        await ret
       }
     } catch (e) {
-      self.handleError(event, e)
+      this.handleError(event, e)
     }
   }
 }
@@ -79,7 +80,7 @@ Platform.prototype._handleRoute = function (event, context) {
     throw new Error('Invalid route configuration.')
   }
   const fn = this._routes[headers.route]
-  return fn.call(this, this.req, this.res)
+  return fn.call(this, this.req, this.res, this.envoyContext)
 }
 Platform.prototype.registerWorker = function (event, fn) {
   this._workers[event] = fn
@@ -110,7 +111,7 @@ Platform.prototype._handleEvent = function (event, context) {
     throw new Error('Invalid handler configuration [' + headers.event + ']')
   }
   let fn = this._workers[headers.event]
-  return fn.call(this, this.req, this.res)
+  return fn.call(this, this.req, this.res, this.envoyContext)
 }
 Platform.prototype.intercept = function (event, fn) {
   this._interceptors[event] = fn

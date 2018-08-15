@@ -4,6 +4,7 @@ const utils = require('./lib/utils')
 const urijs = require('urijs')
 const logger = require('./helpers/logger')
 const Sms = require('./lib/sms')
+const Email = require('./lib/email')
 
 process.env.DEBUG = process.env.DEBUG || 'envoy*'
 
@@ -48,7 +49,8 @@ Platform.prototype.getHandler = function () {
       this.res = new Response(this, context)
       this.req = new Request(this, event, context)
       this.envoyContext = {
-        sms: new Sms(this.req)
+        sms: new Sms(this.req),
+        email: new Email(this.req)
       }
       this.start_time = process.hrtime()
       this.event = event

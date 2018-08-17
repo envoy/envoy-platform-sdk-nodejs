@@ -67,6 +67,55 @@ describe('index', function () {
       expect(twilioSendSpy).to.have.been.called()
       expect(twilioSendSpy.args[0][1]).to.deep.equal({ message: 'hello' })
     })
+    it('should send email to entry if there are no issues', async function () {
+      let context = {
+        succeed: sinon.spy(),
+        fail: sinon.spy(),
+        awsRequestId: 'LAMBDA_INVOKE',
+        logStreamName: 'LAMBDA_INVOKE'
+      }
+      process.env.MANDRILL_API_KEY = 'apikey'
+      let mandrilSpy = sinon.spy()
+      let createTransportSpy = sinon.spy()
+      let sendMailSpy = sinon.spy()
+      let routeEvent = { name: 'route', request_meta: { route: 'welcome' } }
+      let Sdk = proxyquire('../index', {
+        './lib/email': proxyquire('../lib/email', {
+          'nodemailer': {
+            createTransport () {
+              createTransportSpy(...arguments)
+              return {
+                sendMail: function (opts, cb) {
+                  sendMailSpy(...arguments)
+                  cb(null, 'ok')
+                }
+              }
+            }
+          },
+          'nodemailer-mandrill-transport': mandrilSpy
+        })
+      })
+      let platformInstance = new Sdk({})
+      platformInstance.registerRoute('welcome', async (req, res, ctx) => {
+        await ctx.email.send('x@gmail.com', 'alias', 'hello1', 'hello2', 'hello3')
+        res.json(['yes'])
+      })
+      let handler = platformInstance.getHandler()
+      await handler(routeEvent, context)
+      expect(context.fail).to.not.have.been.called()
+      expect(context.succeed).to.have.been.called()
+      let res = context.succeed.args[0][0]
+      expect(res.body).to.deep.equal({ json: ['yes'] })
+      expect(mandrilSpy).to.have.been.calledWith({ auth: { apiKey: 'apikey' } })
+      expect(createTransportSpy).to.have.been.called()
+      expect(sendMailSpy).to.have.been.calledWith({
+        from: 'alias <no-reply@envoy.com>',
+        html: 'hello3',
+        subject: 'hello1',
+        text: 'hello2',
+        to: 'x@gmail.com'
+      })
+    })
     it('should call .error in case of unhandled synchronous error', function () {
       let context = {
         succeed: sinon.spy(),

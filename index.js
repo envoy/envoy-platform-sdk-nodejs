@@ -4,6 +4,8 @@ const utils = require('./lib/utils')
 const urijs = require('urijs')
 const logger = require('./helpers/logger')
 
+process.env.DEBUG = process.env.DEBUG || 'envoy*'
+
 function unhandledExceptionHandler (err) {
   logger.error('SDK', 'Caught unhandled async exception:', err)
   process.exit()

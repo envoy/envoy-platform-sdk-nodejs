@@ -3,14 +3,16 @@
 This plugin is setup to handle events, routing, and intercept synchronous flows from Envoy.
 
 ## Requirements
-- `node`
-- `envoy` - https://github.com/envoy/envoy-cli
+- `node >8`
+- `envoy-plugin` - https://github.com/envoy/envoy-plugin-cli
 
 ## Setup
 
-Get started by [following the instructions](https://github.com/envoy/envoy-cli) in the `envoy-cli` package. 
+Get started by [following the instructions](https://github.com/envoy/https://github.com/envoy/envoy-plugin-cli) in the `https://github.com/envoy/envoy-plugin-cli` package. 
 
-Run `npm install --global-style` to install the necessary packages. The `--global-style` flag is important because when packaging dependencies for lambda, the deep dependencies need to get packaged up too.
+Run `npm install` to install the necessary packages.
+
+Store local environment variables in `.env.local` and production environment variables `.env.production`. Do not commit these files.
 
 ## Writing Routes
 First add your route to `envoy-manifest.json` and run `envoy sync` in order to let Envoy know about your new routes. The format of the route json should be as follows:
@@ -131,17 +133,17 @@ platform.route('signature-callback', function(req, res){
 });
 ```
 
-## Development
-
-Any dependencies you want to be included in the packaged deployment must be added to the `bundledDependencies` array in `package.json`. Read a more detailed article on this here: http://hipsterdevblog.com/blog/2014/12/07/writing-functions-for-aws-lambda-using-npm-and-grunt/
-
-```js
-...
-"bundledDependencies": [
-    "cheerio",
-    "request",
-    "mustache",
-    "moment"
-],
-...
-```
+## Environment variables
+| Environment variable name    | required for |
+|------------------------------|--------------|
+| E_TWILIO_SID                 | this.sms.*   |
+| E_TWILIO_TOKEN               | this.sms.*   |
+| E_TWILIO_NUMBER              | this.sms.*   |
+| MANDRILL_API_KEY             | this.email.* |
+| OAUTH_<app_id>_CLIENT_ID     | oauth config |
+| OAUTH_<app_id>_CLIENT_SECRET | oauth config |
+| OAUTH_<app_id>_AUTHORIZE_URL | oauth config |
+| OAUTH_<app_id>_SITE          | oauth config |
+| OAUTH_<app_id>_REDIRECT_HOST | oauth config |
+| OAUTH_<app_id>_TOKEN_URL     | oauth config |
+| OAUTH_<app_id>_SCOPE         | oauth config |

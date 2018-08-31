@@ -26,7 +26,6 @@
     "nodemailer": "^4.6.8",
     "nodemailer-mandrill-transport": "^1.2.0",
     "standard": "^11.0.1",
-    "client-oauth2": "^4.2.1",
     "simple-oauth2": "^1.6.0",
     "urijs": "^1.18.0",
     "libphonenumber-js": "^1.0.7",

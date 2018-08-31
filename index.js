@@ -48,10 +48,10 @@ Platform.prototype.getHandler = function () {
     try {
       this.res = new Response(this, context)
       this.req = new Request(this, event, context)
-      this.envoyContext = {
+      Object.assign(this, {
         sms: new Sms(this.req),
         email: new Email(this.req)
-      }
+      })
       this.start_time = process.hrtime()
       this.event = event
       this.context = context
@@ -82,7 +82,7 @@ Platform.prototype._handleRoute = function (event, context) {
     throw new Error('Invalid route configuration.')
   }
   const fn = this._routes[headers.route]
-  return fn.call(this, this.req, this.res, this.envoyContext)
+  return fn.call(this, this.req, this.res)
 }
 Platform.prototype.registerWorker = function (event, fn) {
   this._workers[event] = fn
@@ -113,7 +113,7 @@ Platform.prototype._handleEvent = function (event, context) {
     throw new Error('Invalid handler configuration [' + headers.event + ']')
   }
   let fn = this._workers[headers.event]
-  return fn.call(this, this.req, this.res, this.envoyContext)
+  return fn.call(this, this.req, this.res)
 }
 Platform.prototype.intercept = function (event, fn) {
   this._interceptors[event] = fn

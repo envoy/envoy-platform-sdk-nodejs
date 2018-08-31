@@ -54,8 +54,8 @@ describe('index', function () {
         })
       })
       let platformInstance = new Sdk({})
-      platformInstance.registerRoute('welcome', async (req, res, ctx) => {
-        await ctx.sms.sendToEntry('hello')
+      platformInstance.registerRoute('welcome', async function (req, res) {
+        await this.sms.sendToEntry('hello')
         res.json(['yes'])
       })
       let handler = platformInstance.getHandler()
@@ -96,8 +96,8 @@ describe('index', function () {
         })
       })
       let platformInstance = new Sdk({})
-      platformInstance.registerRoute('welcome', async (req, res, ctx) => {
-        await ctx.email.send('x@gmail.com', 'alias', 'hello1', 'hello2', 'hello3')
+      platformInstance.registerRoute('welcome', async function (req, res) {
+        await this.email.send('x@gmail.com', 'alias', 'hello1', 'hello2', 'hello3')
         res.json(['yes'])
       })
       let handler = platformInstance.getHandler()

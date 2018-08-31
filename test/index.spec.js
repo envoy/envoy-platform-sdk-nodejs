@@ -46,7 +46,7 @@ describe('index', function () {
       let routeEvent = { name: 'route', request_meta: { route: 'welcome' } }
       let Sdk = proxyquire('../index', {
         './lib/sms': proxyquire('../lib/sms', {
-          'envoy-plugin-twilio-notification-helper': {
+          './twilioHelper': {
             send: async function () {
               twilioSendSpy(...arguments)
             }

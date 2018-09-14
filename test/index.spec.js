@@ -161,6 +161,76 @@ describe('index', function () {
         }
       }, 500)
     })
+  })
+  describe('worker', function () {
+    it('worker should add attachments on job_success', function () {
+      let context = {
+        succeed: sinon.spy(),
+        fail: sinon.spy(),
+        awsRequestId: 'LAMBDA_INVOKE',
+        logStreamName: 'LAMBDA_INVOKE'
+      }
+      let workerEvent = { name: 'event', request_meta: { event: 'welcome' } }
+      let Sdk = proxyquire('../index', {})
+      let platformInstance = new Sdk({})
+      platformInstance.registerWorker('welcome', function (req, res) {
+        res.job_attach({
+          type: 'link',
+          label: 'NDA',
+          value: 'some dropbox url'
+        })
+        res.job_attach({
+          type: 'link',
+          label: 'NDA2',
+          value: 'some dropbox url'
+        }, {
+          type: 'link',
+          label: 'NDA3',
+          value: 'some dropbox url'
+        })
+        res.job_complete('Uploaded NDA', {})
+      })
+      let handler = platformInstance.getHandler()
+      handler(workerEvent, context)
+      expect(context.succeed).to.have.been.called()
+      let args = context.succeed.args[0][0]
+      expect(args.meta.set_job_status).to.equal('done')
+      expect(args.meta.set_job_status_message).to.equal('Uploaded NDA')
+      expect(JSON.parse(args.meta.set_job_attachments)).to.deep.equal([{
+        type: 'link',
+        label: 'NDA',
+        value: 'some dropbox url'
+      }, {
+        type: 'link',
+        label: 'NDA2',
+        value: 'some dropbox url'
+      }, {
+        type: 'link',
+        label: 'NDA3',
+        value: 'some dropbox url'
+      }])
+      expect(args.body).to.deep.equal({})
+    })
+    it('worker should call .job_failed in case of unhandled synchronous error', function () {
+      let context = {
+        succeed: sinon.spy(),
+        fail: sinon.spy(),
+        awsRequestId: 'LAMBDA_INVOKE',
+        logStreamName: 'LAMBDA_INVOKE'
+      }
+      let workerEvent = { name: 'event', request_meta: { event: 'welcome' } }
+      let Sdk = proxyquire('../index', {})
+      let platformInstance = new Sdk({})
+      platformInstance.registerWorker('welcome', (req, res) => { throw new Error('no') })
+      let handler = platformInstance.getHandler()
+      handler(workerEvent, context)
+      expect(context.succeed).to.have.been.called()
+      let args = context.succeed.args[0][0]
+      expect(args.meta.set_job_status).to.equal('failed')
+      expect(args.meta.set_job_status_message).to.equal('Unhandled Exception')
+      expect(args.meta.set_job_failure_message).to.equal('no')
+      expect(args.body.message).to.equal('no')
+    })
     it('job should call .job_failed in case of unhandled asynchronous promise error', function (done) {
       let context = {
         succeed: sinon.spy(),
@@ -188,28 +258,6 @@ describe('index', function () {
           done(e)
         }
       }, 500)
-    })
-  })
-  describe('worker', function () {
-    it('worker should call .job_failed in case of unhandled synchronous error', function () {
-      let context = {
-        succeed: sinon.spy(),
-        fail: sinon.spy(),
-        awsRequestId: 'LAMBDA_INVOKE',
-        logStreamName: 'LAMBDA_INVOKE'
-      }
-      let workerEvent = { name: 'event', request_meta: { event: 'welcome' } }
-      let Sdk = proxyquire('../index', {})
-      let platformInstance = new Sdk({})
-      platformInstance.registerWorker('welcome', (req, res) => { throw new Error('no') })
-      let handler = platformInstance.getHandler()
-      handler(workerEvent, context)
-      expect(context.succeed).to.have.been.called()
-      let args = context.succeed.args[0][0]
-      expect(args.meta.set_job_status).to.equal('failed')
-      expect(args.meta.set_job_status_message).to.equal('Unhandled Exception')
-      expect(args.meta.set_job_failure_message).to.equal('no')
-      expect(args.body.message).to.equal('no')
     })
   })
 })

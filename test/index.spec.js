@@ -227,7 +227,7 @@ describe('index', function () {
       expect(context.succeed).to.have.been.called()
       let args = context.succeed.args[0][0]
       expect(args.meta.set_job_status).to.equal('failed')
-      expect(args.meta.set_job_status_message).to.equal('Unhandled Exception')
+      expect(args.meta.set_job_status_message).to.equal('Failed')
       expect(args.meta.set_job_failure_message).to.equal('no')
       expect(args.body.message).to.equal('no')
     })
@@ -250,7 +250,7 @@ describe('index', function () {
           expect(context.succeed).to.have.been.called()
           let args = context.succeed.args[0][0]
           expect(args.meta.set_job_status).to.equal('failed')
-          expect(args.meta.set_job_status_message).to.equal('Unhandled Exception')
+          expect(args.meta.set_job_status_message).to.equal('Failed')
           expect(args.meta.set_job_failure_message).to.equal('no')
           expect(args.body.message).to.equal('no')
           done()

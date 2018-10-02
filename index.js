@@ -37,7 +37,7 @@ function Platform (config) {
 }
 Platform.prototype.handleError = function (event, e) {
   if (event.name === 'event' || (event.name === 'route' && this.req.job)) {
-    return this.res.job_fail('Unhandled Exception', e.message || 'Unhandled Exception', e)
+    return this.res.job_fail('Failed', e.message || 'unhandled_error', e)
   }
   if (event.name === 'route') {
     return this.res.error(e)

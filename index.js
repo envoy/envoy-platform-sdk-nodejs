@@ -44,7 +44,7 @@ Platform.prototype.handleError = function (event, e) {
   }
 }
 Platform.prototype.getHandler = function () {
-  return async (event, context, callback) => {
+  return (event, context, callback) => {
     try {
       this.res = new Response(this, context)
       this.req = new Request(this, event, context)
@@ -66,7 +66,7 @@ Platform.prototype.getHandler = function () {
         ret = this._handleEvent(event, context)
       }
       if (ret instanceof Promise) {
-        await ret
+        ret.catch(e => this.handleError(event, e))
       }
     } catch (e) {
       this.handleError(event, e)

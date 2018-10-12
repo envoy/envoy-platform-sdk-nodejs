@@ -70,7 +70,6 @@ Platform.prototype.getHandler = function () {
       this.start_time = process.hrtime()
       this.event = event
       this.context = context
-      this.storeLoggingSignature()
       if (!event.name) {
         throw new Error('Event issued did not include action.')
       }

@@ -2,7 +2,14 @@ const debug = require('debug')
 const info = debug('envoy-plugin:info')
 const warn = debug('envoy-plugin:warn')
 const error = debug('envoy-plugin:error')
-info.log = console.log.bind(console)
-warn.log = console.log.bind(console)
-error.log = console.log.bind(console)
+
+function log (...args) {
+  args[0] = args[0]
+    .replace(/^.*envoy-plugin:/, '')
+    .replace(/^([^\s]+)/, `$1 ::`)
+  console.log(...args)
+}
+
+info.log = warn.log = error.log = log
+
 module.exports = { info, warn, error }

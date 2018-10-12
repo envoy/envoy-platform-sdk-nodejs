@@ -22,15 +22,15 @@
   },
   "dependencies": {
     "debug": "^3.1.0",
+    "libphonenumber-js": "^1.0.7",
     "lodash.get": "^4.4.2",
     "nodemailer": "^4.6.8",
     "nodemailer-mandrill-transport": "^1.2.0",
-    "standard": "^11.0.1",
-    "simple-oauth2": "^1.6.0",
-    "urijs": "^1.18.0",
-    "libphonenumber-js": "^1.0.7",
     "request-promise": "^4.2.2",
-    "twilio": "^3.19.1"
+    "simple-oauth2": "^1.6.0",
+    "standard": "^11.0.1",
+    "twilio": "^3.19.1",
+    "urijs": "^1.18.0"
   },
   "devDependencies": {
     "chai": "^4.1.2",

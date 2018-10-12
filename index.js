@@ -5,6 +5,7 @@ const urijs = require('urijs')
 const logger = require('./helpers/logger')
 const Sms = require('./lib/sms')
 const Email = require('./lib/email')
+const get = require('lodash.get')
 
 process.env.DEBUG = process.env.DEBUG || 'envoy*'
 
@@ -43,6 +44,20 @@ Platform.prototype.handleError = function (event, e) {
     return this.res.error(e)
   }
 }
+Platform.prototype.getLoggingSignature = function () {
+  return [
+    [ 'eventName', 'name' ],
+    [ 'workerName', 'request_meta.event' ],
+    [ 'routeName', 'request_meta.route' ],
+    [ 'jobId', 'request_meta.job.id' ],
+    [ 'companyId', 'request_meta.company.id' ],
+    [ 'locationId', 'request_meta.location.id' ]
+  ].map(e => [ e[0], get(this.event, e[1], null) ])
+    .filter(e => e[1])
+    .map(e => e.join('='))
+    .join('; ') +
+  ` ::`
+}
 Platform.prototype.getHandler = function () {
   return (event, context, callback) => {
     try {
@@ -77,6 +92,7 @@ Platform.prototype.registerRoute = function (name, fn) {
   this._routes[name] = fn
 }
 Platform.prototype._handleRoute = function (event, context) {
+  logger.info(this.getLoggingSignature(), 'Platform._handleRoute', event)
   const headers = event.request_meta
   if (typeof this._routes[headers.route] !== 'function') {
     throw new Error('Invalid route configuration.')
@@ -108,6 +124,7 @@ Platform.prototype.getJobLink = function (path, localhost) {
   return url.toString()
 }
 Platform.prototype._handleEvent = function (event, context) {
+  logger.info(this.getLoggingSignature(), 'Platform._handleEvent', event)
   let headers = event.request_meta
   if (typeof this._workers[headers.event] !== 'function') {
     throw new Error('Invalid handler configuration [' + headers.event + ']')

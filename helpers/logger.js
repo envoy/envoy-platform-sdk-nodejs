@@ -6,7 +6,7 @@ const error = debug('envoy-plugin:error')
 function log (...args) {
   args[0] = args[0]
     .replace(/^.*envoy-plugin:/, '')
-    .replace(/^([^\s]+)/, `$1 :: ${global.loggingSignature} ::`)
+    .replace(/^([^\s]+)/, `$1 ::`)
   console.log(...args)
 }
 

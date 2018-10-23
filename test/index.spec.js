@@ -211,6 +211,29 @@ describe('index', function () {
       }])
       expect(args.body).to.deep.equal({})
     })
+    it('worker calls job_failed when `plugin_failed` is called, and sets plugin status to failed', function () {
+      let context = {
+        succeed: sinon.spy(),
+        fail: sinon.spy(),
+        awsRequestId: 'LAMBDA_INVOKE',
+        logStreamName: 'LAMBDA_INVOKE'
+      }
+      let workerEvent = { name: 'event', request_meta: { event: 'welcome' } }
+      let Sdk = proxyquire('../index', {})
+      let platformInstance = new Sdk({})
+      platformInstance.registerWorker('welcome', (req, res) => {
+        res.plugin_fail('Authentication failed', 'Reauthentication required', {})
+      })
+      let handler = platformInstance.getHandler()
+      handler(workerEvent, context)
+      expect(context.succeed).to.have.been.called()
+      let args = context.succeed.args[0][0]
+      expect(args.meta.set_install_status).to.equal('failed')
+      expect(args.meta.set_job_status).to.equal('failed')
+      expect(args.meta.set_job_status_message).to.equal('Authentication failed')
+      expect(args.meta.set_job_failure_message).to.equal('Reauthentication required')
+      expect(args.body).to.deep.equal({})
+    })
     it('worker should call .job_failed in case of unhandled synchronous error', function () {
       let context = {
         succeed: sinon.spy(),

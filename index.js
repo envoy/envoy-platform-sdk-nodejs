@@ -6,6 +6,7 @@ const logger = require('./helpers/logger')
 const Sms = require('./lib/sms')
 const Email = require('./lib/email')
 const get = require('lodash.get')
+const request = require('request-promise-native')
 
 process.env.DEBUG = process.env.DEBUG || 'envoy*'
 
@@ -23,7 +24,8 @@ function registerUnhandledExceptionHandler () {
 }
 
 function Platform (config) {
-  this.config = config
+  this.config = config || {}
+  this.config.key = this.config.key || process.env.ENVOY_PLUGIN_KEY
   this._routes = {}
   this._workers = {}
   this._interceptors = {}
@@ -50,6 +52,8 @@ Platform.prototype.getLoggingSignature = function () {
     [ 'workerName', 'request_meta.event' ],
     [ 'routeName', 'request_meta.route' ],
     [ 'jobId', 'request_meta.job.id' ],
+    [ 'eventReportId', 'event_report_id' ],
+    [ 'eventReportId', 'params.event_report_id' ],
     [ 'companyId', 'request_meta.company.id' ],
     [ 'locationId', 'request_meta.location.id' ]
   ].map(e => [ e[0], get(this.event, e[1], null) ])
@@ -119,9 +123,38 @@ Platform.prototype.getJobLink = function (path, localhost) {
   url.protocol(protocol)
   url.host(localhost)
   let query = url.search(true)
-  query._juuid = this.req.job.id
+  let jobId = get(this.req, 'job.id')
+  let hubEventId = this.req.event_report_id
+  if (jobId) {
+    query._juuid = jobId
+  }
+  if (hubEventId) {
+    query.event_report_id = hubEventId
+  }
   url.search(query)
   return url.toString()
+}
+Platform.prototype.eventUpdate = async function (statusSummary, failureReason, eventStatus = 'in_progress') {
+  let envoyBaseUrl = process.env.ENVOY_BASE_URL || 'https://app.envoy.com'
+  let eventReportId = this.req.event_report_id || this.req.params.event_report_id
+  let eventReportUrl = `${envoyBaseUrl}/a/hub/v1/event_reports/${eventReportId}`
+  return request.put(eventReportUrl, {
+    json: true,
+    body: {
+      status: eventStatus,
+      status_message: statusSummary,
+      failure_reason: failureReason
+    }
+  })
+}
+Platform.prototype.eventComplete = async function (statusMessage) {
+  return this.eventUpdate(statusMessage, null, 'done')
+}
+Platform.prototype.eventIgnore = async function (statusMessage, failureReason) {
+  return this.eventUpdate(statusMessage, failureReason, 'ignored')
+}
+Platform.prototype.eventFail = async function (statusMessage, failureReason) {
+  return this.eventUpdate(statusMessage, failureReason, 'failed')
 }
 Platform.prototype._handleEvent = function (event, context) {
   logger.info(this.getLoggingSignature(), 'Platform._handleEvent', event)

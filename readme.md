@@ -134,16 +134,20 @@ platform.route('signature-callback', function(req, res){
 ```
 
 ## Environment variables
-| Environment variable name    | required for |
-|------------------------------|--------------|
-| E_TWILIO_SID                 | this.sms.*   |
-| E_TWILIO_TOKEN               | this.sms.*   |
-| E_TWILIO_NUMBER              | this.sms.*   |
-| MANDRILL_API_KEY             | this.email.* |
-| OAUTH_<app_id>_CLIENT_ID     | oauth config |
-| OAUTH_<app_id>_CLIENT_SECRET | oauth config |
-| OAUTH_<app_id>_AUTHORIZE_URL | oauth config |
-| OAUTH_<app_id>_SITE          | oauth config |
-| OAUTH_<app_id>_REDIRECT_HOST | oauth config |
-| OAUTH_<app_id>_TOKEN_URL     | oauth config |
-| OAUTH_<app_id>_SCOPE         | oauth config |
+| Environment variable name    | required for | note         |
+|------------------------------|--------------|--------------|
+| DEBUG                        | logger.*     | added by cli |
+| ENVOY_BASE_URL               | this.event*  | added by cli |
+| ENVOY_PLUGIN_KEY             | this.event*  | added by cli |
+| E_TWILIO_SID                 | this.sms.*   |              |
+| E_TWILIO_TOKEN               | this.sms.*   |              |
+| E_TWILIO_NUMBER              | this.sms.*   |              |
+| MANDRILL_API_KEY             | this.email.* |              |
+| OAUTH_<app_id>_CLIENT_ID     | oauth config |              |
+| OAUTH_<app_id>_CLIENT_SECRET | oauth config |              |
+| OAUTH_<app_id>_AUTHORIZE_URL | oauth config |              |
+| OAUTH_<app_id>_SITE          | oauth config |              |
+| OAUTH_<app_id>_REDIRECT_HOST | oauth config |              |
+| OAUTH_<app_id>_TOKEN_URL     | oauth config |              |
+| OAUTH_<app_id>_SCOPE         | oauth config |              |
+|------------------------------|--------------|--------------|

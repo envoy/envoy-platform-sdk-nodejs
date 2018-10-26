@@ -5,6 +5,7 @@ const urijs = require('urijs')
 const logger = require('./helpers/logger')
 const Sms = require('./lib/sms')
 const Email = require('./lib/email')
+const oauth2Routes = require('./lib/oauth2Routes')
 const get = require('lodash.get')
 const request = require('request-promise-native')
 
@@ -31,6 +32,8 @@ function Platform (config) {
   this._workers = {}
   this._interceptors = {}
   var self = this
+  self.registerRoute('oauth/connect', oauth2Routes.connect)
+  self.registerRoute('oauth/callback', oauth2Routes.callback)
   utils.loadHandlers(this.config.baseDir + '/routes', function (name, handler) {
     self.registerRoute(name, handler)
   })

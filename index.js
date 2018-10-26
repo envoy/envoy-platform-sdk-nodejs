@@ -134,7 +134,7 @@ Platform.prototype.getJobLink = function (path, localhost) {
   url.search(query)
   return url.toString()
 }
-Platform.prototype.eventUpdate = async function (statusSummary, failureReason, eventStatus = 'in_progress') {
+Platform.prototype.eventUpdate = async function (statusSummary, failureReason = null, eventStatus = 'in_progress') {
   let envoyBaseUrl = process.env.ENVOY_BASE_URL || 'https://app.envoy.com'
   let eventReportId = this.req.event_report_id || this.req.params.event_report_id
   let eventReportUrl = `${envoyBaseUrl}/a/hub/v1/event_reports/${eventReportId}`

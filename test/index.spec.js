@@ -67,6 +67,70 @@ describe('index', function () {
       expect(twilioSendSpy).to.have.been.called()
       expect(twilioSendSpy.args[0][1]).to.deep.equal({ message: 'hello' })
     })
+    it('should return json if there are no issues', function () {
+      let context = {
+        succeed: sinon.spy(),
+        fail: sinon.spy(),
+        awsRequestId: 'LAMBDA_INVOKE',
+        logStreamName: 'LAMBDA_INVOKE'
+      }
+      let routeEvent = { name: 'route', request_meta: { route: 'welcome' } }
+      let Sdk = proxyquire('../index', {})
+      let platformInstance = new Sdk({})
+      platformInstance.registerRoute('welcome', (req, res) => res.json(['yes']))
+      let handler = platformInstance.getHandler()
+      handler(routeEvent, context)
+      expect(context.fail).to.not.have.been.called()
+      expect(context.succeed).to.have.been.called()
+      let res = context.succeed.args[0][0]
+      expect(res.body).to.deep.equal({ json: ['yes'] })
+    })
+    it('should update event report when necessary', async function () {
+      let context = {
+        succeed: sinon.spy(),
+        fail: sinon.spy(),
+        awsRequestId: 'LAMBDA_INVOKE',
+        logStreamName: 'LAMBDA_INVOKE'
+      }
+      let putSpy = sinon.spy()
+      let routeEvent = {
+        name: 'route',
+        request_meta: {
+          route: 'welcome',
+          params: {
+            event_report_id: 'eid'
+          }
+        }
+      }
+      let Sdk = proxyquire('../index', {
+        'request-promise-native': {
+          put: async function () {
+            putSpy(...arguments)
+          }
+        }
+      })
+      let platformInstance = new Sdk({ })
+      platformInstance.registerRoute('welcome', async function (req, res) {
+        await this.eventComplete('Sent')
+        res.json(['yes'])
+      })
+      let handler = platformInstance.getHandler()
+      await handler(routeEvent, context)
+      expect(context.fail).to.not.have.been.called()
+      expect(context.succeed).to.have.been.called()
+      let res = context.succeed.args[0][0]
+      expect(res.body).to.deep.equal({ json: ['yes'] })
+      expect(putSpy).to.have.been.called()
+      expect(putSpy.args[0][0]).to.equal('https://app.envoy.com/a/hub/v1/event_reports/eid')
+      expect(putSpy.args[0][1]).to.deep.equal({
+        json: true,
+        body: {
+          status: 'done',
+          status_message: 'Sent',
+          failure_reason: null
+        }
+      })
+    })
     it('should send email to entry if there are no issues', async function () {
       let context = {
         succeed: sinon.spy(),

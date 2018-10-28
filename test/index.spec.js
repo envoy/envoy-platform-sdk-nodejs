@@ -346,5 +346,61 @@ describe('index', function () {
         }
       }, 500)
     })
+    it('creates correct job links', function () {
+      process.env.ENVOY_PLUGIN_KEY = 'pk'
+      let context = {
+        succeed: sinon.spy(),
+        fail: sinon.spy(),
+        awsRequestId: 'LAMBDA_INVOKE',
+        logStreamName: 'LAMBDA_INVOKE'
+      }
+      let workerEvent = {
+        name: 'event',
+        request_meta: {
+          event: 'welcome',
+          job: {
+            id: 'jid'
+          }
+        }
+      }
+      let Sdk = proxyquire('../index', {})
+      let platformInstance = new Sdk({})
+      let route
+      platformInstance.registerWorker('welcome', function (req, res) {
+        route = this.getJobLink('welcome2')
+        res.job_complete('Complete', {})
+      })
+      let handler = platformInstance.getHandler()
+      handler(workerEvent, context)
+      expect(context.succeed).to.have.been.called()
+      expect(route).to.equal('https://app.envoy.com/platform/pk/welcome2?_juuid=jid')
+    })
+    it('creates correct event report links', function () {
+      process.env.ENVOY_PLUGIN_KEY = 'pk'
+      let context = {
+        succeed: sinon.spy(),
+        fail: sinon.spy(),
+        awsRequestId: 'LAMBDA_INVOKE',
+        logStreamName: 'LAMBDA_INVOKE'
+      }
+      let workerEvent = {
+        name: 'event',
+        request_meta: {
+          event: 'welcome',
+          event_report_id: 'eid'
+        }
+      }
+      let Sdk = proxyquire('../index', {})
+      let platformInstance = new Sdk({})
+      let route
+      platformInstance.registerWorker('welcome', function (req, res) {
+        route = this.getEventReportLink('welcome2', { something: 'else' })
+        res.job_complete('Complete', {})
+      })
+      let handler = platformInstance.getHandler()
+      handler(workerEvent, context)
+      expect(context.succeed).to.have.been.called()
+      expect(route).to.equal('https://app.envoy.com/platform/pk/welcome2?something=else&event_report_id=eid')
+    })
   })
 })

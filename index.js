@@ -26,6 +26,7 @@ function registerUnhandledExceptionHandler () {
 function Platform (config) {
   this.config = config || {}
   this.config.key = this.config.key || process.env.ENVOY_PLUGIN_KEY
+  this.config.baseUrl = this.config.baseUrl || process.env.ENVOY_BASE_URL || 'https://app.envoy.com'
   this._routes = {}
   this._workers = {}
   this._interceptors = {}
@@ -107,37 +108,33 @@ Platform.prototype._handleRoute = function (event, context) {
 Platform.prototype.registerWorker = function (event, fn) {
   this._workers[event] = fn
 }
-Platform.prototype.getJobLink = function (path, localhost) {
-  let protocol = 'http'
-  if (!localhost) {
-    localhost = 'app.envoy.com'
-    protocol = 'https'
-  }
-  if (!this.req.job) {
+Platform.prototype.getJobLink = function (path, queryParams = {}) {
+  let jobId = get(this.req, 'job.id')
+  if (!jobId) {
     throw new Error('No job associated with this request.')
   }
+  return this.getRouteLink(path, Object.assign(queryParams, { _juuid: jobId }))
+}
+Platform.prototype.getEventReportLink = function (path, queryParams = {}) {
+  let hubEventId = this.req.event_report_id || this.req.query.event_report_id
+  if (!hubEventId) {
+    throw new Error('No hub event associated with this request.')
+  }
+  return this.getRouteLink(path, Object.assign(queryParams, { event_report_id: hubEventId }))
+}
+Platform.prototype.getRouteLink = function (path, queryParams = {}) {
   if (!this.config.key) {
-    throw new Error('No plugin key in manifest.json.')
+    throw new Error('No plugin key.')
   }
-  let url = urijs(path).absoluteTo('/platform/' + this.config.key + '/')
-  url.protocol(protocol)
-  url.host(localhost)
-  let query = url.search(true)
-  let jobId = get(this.req, 'job.id')
-  let hubEventId = this.req.event_report_id
-  if (jobId) {
-    query._juuid = jobId
+  if (!this.config.baseUrl) {
+    throw new Error('No base url.')
   }
-  if (hubEventId) {
-    query.event_report_id = hubEventId
-  }
-  url.search(query)
+  let url = urijs(`${this.config.baseUrl}/platform/${this.config.key}/${path}`).query(queryParams)
   return url.toString()
 }
 Platform.prototype.eventUpdate = async function (statusSummary, failureReason = null, eventStatus = 'in_progress') {
-  let envoyBaseUrl = process.env.ENVOY_BASE_URL || 'https://app.envoy.com'
   let eventReportId = this.req.event_report_id || this.req.params.event_report_id
-  let eventReportUrl = `${envoyBaseUrl}/a/hub/v1/event_reports/${eventReportId}`
+  let eventReportUrl = `${this.config.baseUrl}/a/hub/v1/event_reports/${eventReportId}`
   return request.put(eventReportUrl, {
     json: true,
     body: {

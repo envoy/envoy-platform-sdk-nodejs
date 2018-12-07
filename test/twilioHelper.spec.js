@@ -31,6 +31,7 @@ describe('twilioHelper | send', function () {
     ['716321124', 'CZ', '+420716321124'],
     ['7804588067', 'CA', '+17804588067'],
     // australia needs the area code given as well
+    // https://www.australia.gov.au/about-australia/facts-and-figures/telephone-country-and-area-codes
     ['02 92849738', 'AU', '+61292849738']
   ]
   for (const tc of testCases) {

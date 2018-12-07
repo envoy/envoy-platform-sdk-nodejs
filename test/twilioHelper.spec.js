@@ -7,74 +7,59 @@ const proxyquire = require('proxyquire')
 chai.use(sinonChai)
 chai.use(dirtyChai)
 
-describe('twilio send', function () {
-  it('should process send sms request correctly', async function () {
+describe('twilioHelper | send', function () {
+  beforeEach(function () {
     process.env = {
       E_TWILIO_SID: 'sid',
       E_TWILIO_TOKEN: 'tok',
       E_TWILIO_NUMBER: '000000000'
     }
-    let tConstructorSpy = sinon.spy()
-    let sendSpy = sinon.spy()
-    let send = proxyquire('../lib/twilioHelper', {
-      twilio: function () {
-        tConstructorSpy(...arguments)
-        return {
-          messages: {
-            create: function (config, cb) {
-              sendSpy(config, cb)
-              cb(null, 'Sent')
-            }
-          }
+    this.twilioSendStub = sinon.stub()
+    this.twilioConstructorStub = sinon.stub().returns({
+      messages: {
+        create: (config, cb) => {
+          this.twilioSendStub(config)
+            .then(cb.bind(null, null), cb.bind(null))
         }
       }
-    }).send
-    let req = {
-      location: {
-        attributes: {
-          country: 'cz'
-        }
-      },
-      body: {
-        attributes: {
-          'phone-number': '716321124'
-        }
-      }
-    }
-    let ret = await send(req, { message: 'Hello World' })
-    expect(ret).to.equal('Sent')
-    expect(sendSpy).to.have.been.calledWith({
-      body: 'Hello World',
-      from: '000000000',
-      to: '+420716321124'
     })
+    this.subject = proxyquire('../lib/twilioHelper', {
+      twilio: this.twilioConstructorStub
+    }).send
   })
-  it('should process send sms requests normally if phone number format does not match country code', async function () {
-    process.env = {
-      E_TWILIO_SID: 'sid',
-      E_TWILIO_TOKEN: 'tok',
-      E_TWILIO_NUMBER: '000000000'
-    }
-    let tConstructorSpy = sinon.spy()
-    let sendSpy = sinon.spy()
-    let send = proxyquire('../lib/twilioHelper', {
-      twilio: function () {
-        tConstructorSpy(...arguments)
-        return {
-          messages: {
-            create: function (config, cb) {
-              sendSpy(config, cb)
-              cb(null, 'Sent')
-            }
+  let testCases = [
+    ['716321124', 'CZ', '+420716321124'],
+    ['7804588067', 'CA', '+17804588067'],
+    // australia needs the area code given as well
+    ['02 92849738', 'AU', '+61292849738']
+  ]
+  for (const tc of testCases) {
+    it(`should process send sms request correctly :: ${tc[0]}, ${tc[1]} > ${tc[2]}`, async function () {
+      this.twilioSendStub.resolves('Sent')
+      let req = {
+        location: {
+          attributes: { country: tc[1] }
+        },
+        body: {
+          attributes: {
+            'phone-number': tc[0]
           }
         }
       }
-    }).send
+      let ret = await this.subject(req, { message: 'Hello World' })
+      expect(ret).to.equal('Sent')
+      expect(this.twilioSendStub).to.have.been.calledWith({
+        body: 'Hello World',
+        from: '000000000',
+        to: tc[2]
+      })
+    })
+  }
+  it('should process send sms requests normally if phone number format does not match country code', async function () {
+    this.twilioSendStub.resolves('Sent')
     let req = {
       location: {
-        attributes: {
-          country: 'us'
-        }
+        attributes: { country: 'us' }
       },
       body: {
         attributes: {
@@ -85,35 +70,16 @@ describe('twilio send', function () {
         }
       }
     }
-    let ret = await send(req, { message: 'Hello World' })
+    let ret = await this.subject(req, { message: 'Hello World' })
     expect(ret).to.equal('Sent')
-    expect(sendSpy).to.have.been.calledWith({
+    expect(this.twilioSendStub).to.have.been.calledWith({
       body: 'Hello World',
       from: '000000000',
       to: '716321124'
     })
   })
   it('should process send sms requests normally if country is not available', async function () {
-    process.env = {
-      E_TWILIO_SID: 'sid',
-      E_TWILIO_TOKEN: 'tok',
-      E_TWILIO_NUMBER: '000000000'
-    }
-    let tConstructorSpy = sinon.spy()
-    let sendSpy = sinon.spy()
-    let send = proxyquire('../lib/twilioHelper', {
-      twilio: function () {
-        tConstructorSpy(...arguments)
-        return {
-          messages: {
-            create: function (config, cb) {
-              sendSpy(config, cb)
-              cb(null, 'Sent')
-            }
-          }
-        }
-      }
-    }).send
+    this.twilioSendStub.resolves('Sent')
     let req = {
       body: {
         attributes: {
@@ -124,36 +90,17 @@ describe('twilio send', function () {
         }
       }
     }
-    let ret = await send(req, { message: 'Hello World' })
+    let ret = await this.subject(req, { message: 'Hello World' })
     expect(ret).to.equal('Sent')
-    expect(sendSpy).to.have.been.calledWith({
+    expect(this.twilioSendStub).to.have.been.calledWith({
       body: 'Hello World',
       from: '000000000',
       to: '716321124'
     })
   })
   it('should return twilio errors', async function () {
-    process.env = {
-      E_TWILIO_SID: 'sid',
-      E_TWILIO_TOKEN: 'tok',
-      E_TWILIO_NUMBER: '000000000'
-    }
-    let tConstructorSpy = sinon.spy()
-    let sendSpy = sinon.spy()
     let notSentError = new Error('Not Sent')
-    let send = proxyquire('../lib/twilioHelper', {
-      twilio: function () {
-        tConstructorSpy(...arguments)
-        return {
-          messages: {
-            create: function (config, cb) {
-              sendSpy(config, cb)
-              cb(notSentError)
-            }
-          }
-        }
-      }
-    }).send
+    this.twilioSendStub.rejects(notSentError)
     let req = {
       location: {
         attributes: {
@@ -171,37 +118,20 @@ describe('twilio send', function () {
     }
     let err
     try {
-      await send(req, { message: 'Hello World' })
+      await this.subject(req, { message: 'Hello World' })
     } catch (e) {
       err = e
     }
     expect(err).to.exist()
-    expect(sendSpy).to.have.been.calledWith({
+    expect(this.twilioSendStub).to.have.been.calledWith({
       body: 'Hello World',
       from: '000000000',
       to: '+420716321124'
     })
   })
   it('should not send sms if missing env variables', async function () {
-    process.env = {
-      E_TWILIO_SID: 'sid',
-      E_TWILIO_TOKEN: 'tok'
-    }
-    let tConstructorSpy = sinon.spy()
-    let sendSpy = sinon.spy()
-    let send = proxyquire('../lib/twilioHelper', {
-      twilio: function () {
-        tConstructorSpy(...arguments)
-        return {
-          messages: {
-            create: function (config, cb) {
-              sendSpy(config, cb)
-              cb(new Error('Should not be called'))
-            }
-          }
-        }
-      }
-    }).send
+    delete process.env.E_TWILIO_NUMBER
+    this.twilioSendStub.rejects(new Error('Should not be called'))
     let req = {
       location: {
         attributes: {
@@ -219,34 +149,15 @@ describe('twilio send', function () {
     }
     let err
     try {
-      await send(req, { message: 'Hello World' })
+      await this.subject(req, { message: 'Hello World' })
     } catch (e) {
       err = e
     }
     expect(err).to.exist()
-    expect(sendSpy).to.not.have.been.called()
+    expect(this.twilioSendStub).to.not.have.been.called()
   })
   it('should not send sms if phone number missing', async function () {
-    process.env = {
-      E_TWILIO_SID: 'sid',
-      E_TWILIO_TOKEN: 'tok',
-      E_TWILIO_NUMBER: '000000000'
-    }
-    let tConstructorSpy = sinon.spy()
-    let sendSpy = sinon.spy()
-    let send = proxyquire('../lib/twilioHelper', {
-      twilio: function () {
-        tConstructorSpy(...arguments)
-        return {
-          messages: {
-            create: function (config, cb) {
-              sendSpy(config, cb)
-              cb(new Error('Should not be called'))
-            }
-          }
-        }
-      }
-    }).send
+    this.twilioSendStub.resolves('Sent')
     let req = {
       location: {
         country: 'cz'
@@ -257,31 +168,12 @@ describe('twilio send', function () {
         }
       }
     }
-    let ret = await send(req, { message: 'Hello World' })
+    let ret = await this.subject(req, { message: 'Hello World' })
     expect(ret).to.equal('No phone number provided')
-    expect(sendSpy).to.not.have.been.called()
+    expect(this.twilioSendStub).to.not.have.been.called()
   })
   it('should not send sms if message is missing', async function () {
-    process.env = {
-      E_TWILIO_SID: 'sid',
-      E_TWILIO_TOKEN: 'tok',
-      E_TWILIO_NUMBER: '000000000'
-    }
-    let tConstructorSpy = sinon.spy()
-    let sendSpy = sinon.spy()
-    let send = proxyquire('../lib/twilioHelper', {
-      twilio: function () {
-        tConstructorSpy(...arguments)
-        return {
-          messages: {
-            create: function (config, cb) {
-              sendSpy(config, cb)
-              cb(new Error('Should not be called'))
-            }
-          }
-        }
-      }
-    }).send
+    this.twilioSendStub.rejects(new Error('Should not be called'))
     let req = {
       location: {
         attributes: {
@@ -294,8 +186,8 @@ describe('twilio send', function () {
         }
       }
     }
-    let ret = await send(req, { phoneNumber: '716321124' })
+    let ret = await this.subject(req, { phoneNumber: '716321124' })
     expect(ret).to.equal('No "message" option provided')
-    expect(sendSpy).to.not.have.been.called()
+    expect(this.twilioSendStub).to.not.have.been.called()
   })
 })

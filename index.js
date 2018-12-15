@@ -1,3 +1,4 @@
+const bugsnag = require('@bugsnag/js')
 const Request = require('./lib/request')
 const Response = require('./lib/response')
 const utils = require('./lib/utils')
@@ -10,6 +11,7 @@ const get = require('lodash.get')
 const request = require('request-promise-native')
 
 process.env.DEBUG = process.env.DEBUG || 'envoy*'
+const bugsnagApiKey = process.env.BUGSNAG_API_KEY
 
 function unhandledExceptionHandler (err) {
   logger.error('SDK', 'Caught unhandled async exception:', err)
@@ -26,6 +28,7 @@ function registerUnhandledExceptionHandler () {
 
 function Platform (config) {
   this.config = config || {}
+  this.bugsnagClient = bugsnagApiKey && bugsnag(bugsnagApiKey)
   this.config.key = this.config.key || process.env.ENVOY_PLUGIN_KEY
   this.config.baseUrl = this.config.baseUrl || process.env.ENVOY_BASE_URL || 'https://app.envoy.com'
   this._routes = {}
@@ -43,6 +46,14 @@ function Platform (config) {
   registerUnhandledExceptionHandler()
 }
 Platform.prototype.handleError = function (event, e) {
+  if (this.bugsnagClient) {
+    this.bugsnagClient.metaData = this.event
+    this.bugsnagClient.user = {
+      company: get(this.event, 'request_meta.company'),
+      location: get(this.event, 'request_meta.location')
+    }
+    this.bugsnagClient.notify(e)
+  }
   if (event.name === 'event' || (event.name === 'route' && this.req.job)) {
     return this.res.job_fail('Failed', e.message || 'unhandled_error', e)
   }

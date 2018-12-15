@@ -21,6 +21,7 @@
     "invoke": "./bin/invoke"
   },
   "dependencies": {
+    "@bugsnag/js": "^5.0.2",
     "debug": "^3.1.0",
     "libphonenumber-js": "^1.0.7",
     "lodash.get": "^4.4.2",

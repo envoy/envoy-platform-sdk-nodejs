@@ -8,13 +8,13 @@ const Email = require('./lib/email')
 const oauth2Routes = require('./lib/oauth2Routes')
 const get = require('lodash.get')
 const request = require('request-promise-native')
-const { bugsnagReport } = require('./lib/bugsnagHelper')
+const { reportError } = require('./lib/bugsnagHelper')
 
 process.env.DEBUG = process.env.DEBUG || 'envoy*'
 
 function unhandledExceptionHandler (err) {
   logger.error('SDK', 'Caught unhandled async exception:', err)
-  bugsnagReport({ type: 'unhandled_async' }, {}, err)
+  reportError({ type: 'unhandled_async' }, {}, err)
   process.exit()
 }
 
@@ -45,7 +45,7 @@ function Platform (config) {
   registerUnhandledExceptionHandler()
 }
 Platform.prototype.handleError = function (event, e) {
-  bugsnagReport({
+  reportError({
     type: 'unhandled',
     ...this.event
   }, {

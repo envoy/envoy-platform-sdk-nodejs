@@ -150,4 +150,4 @@ platform.route('signature-callback', function(req, res){
 | OAUTH_<app_id>_REDIRECT_HOST | oauth config |              |
 | OAUTH_<app_id>_TOKEN_URL     | oauth config |              |
 | OAUTH_<app_id>_SCOPE         | oauth config |              |
-|------------------------------|--------------|--------------|
+| BUGSNAG_API_KEY              | bugsnag      |              |

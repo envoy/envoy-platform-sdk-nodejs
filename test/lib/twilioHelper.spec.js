@@ -23,7 +23,7 @@ describe('twilioHelper | send', function () {
         }
       }
     })
-    this.subject = proxyquire('../lib/twilioHelper', {
+    this.subject = proxyquire('../../lib/twilioHelper', {
       twilio: this.twilioConstructorStub
     }).send
   })

@@ -6,10 +6,12 @@ const chai = require('chai')
 chai.use(dirtyChai)
 chai.use(sinonChai)
 const $ = get
+const _get = require('lodash.get')
 const expect = chai.expect
 
 describe('index', function () {
   this.timeout(20e3)
+  def('envoyApi', () => ({ eventUpdate: sinon.stub().resolves() }))
   def('sms', () => sinon.stub().returns({}))
   def('email', () => sinon.stub().returns({}))
   def('oauth2Routes', () => ({ connect: sinon.spy(), callback: sinon.spy() }))
@@ -43,31 +45,66 @@ describe('index', function () {
     const ret = handler($.routeEvent, $.context)
     if (ret instanceof Promise) { await ret }
   })
-  def('responsePayload', () => $.context.succeed.args[0][0])
+  def('responsePayload', () =>
+    _get($.context.succeed, 'args[0][0]') ||
+    JSON.parse(_get($.context.fail, 'args[0][0]')))
   def('responseBody', () => $.responsePayload.body)
   def('responseMeta', () => $.responsePayload.meta)
 
-  sharedExamplesFor('successful event', function () {
+  sharedExamplesFor('finished lambda event', function () {
+    it('has a valid payload', async function () {
+      await $.subject()
+      expect($.responseMeta).to.exist()
+      expect($.responseBody).to.exist()
+    })
+  })
+  sharedExamplesFor('successful lambda event', function () {
     it('completes successfuly', async function () {
       await $.subject()
       expect($.context.succeed).to.have.been.called()
       expect($.context.fail).to.not.have.been.called()
     })
+    itBehavesLike('finished lambda event')
   })
+  sharedExamplesFor('failed lambda event', function () {
+    it('fails', async function () {
+      await $.subject()
+      expect($.context.succeed).to.not.have.been.called()
+      expect($.context.fail).to.have.been.called()
+    })
+    itBehavesLike('finished lambda event')
+  })
+
   describe('getHandler', function () {
     describe('route', function () {
       def('subject', () => $.route)
-      itBehavesLike('successful event')
+      itBehavesLike('successful lambda event')
       it('returns payload', async function () {
         await $.subject()
         expect($.responseBody).to.deep.equal({
           json: { welcome: true }
         })
       })
+      context('invalid handler', function () {
+        def('routeHandler', () => 'not a function')
+        itBehavesLike('failed lambda event')
+      })
+      context('invalid event', function () {
+        def('routeEvent', () => ({ name: 'aa', request_meta: {} }))
+        itBehavesLike('failed lambda event')
+      })
+      context('unhandled error', function () {
+        def('routeHandler', () => () => { throw new Error('no') })
+        itBehavesLike('failed lambda event')
+        context('async', function () {
+          def('routeHandler', () => async () => { throw new Error('no') })
+          itBehavesLike('failed lambda event')
+        })
+      })
     })
     describe('worker', function () {
       def('subject', () => $.worker)
-      itBehavesLike('successful event')
+      itBehavesLike('successful lambda event')
       it('returns meta', async function () {
         await $.subject()
         expect($.responseMeta).to.deep.include({
@@ -81,16 +118,29 @@ describe('index', function () {
           payload: true
         })
       })
+      context('invalid handler', function () {
+        def('workerHandler', () => 'not a function')
+        itBehavesLike('successful lambda event')
+        it('adds the failure metadata', async function () {
+          await $.subject()
+          expect($.responseMeta).to.deep.include({
+            set_job_status: 'failed',
+            set_job_status_message: 'Failed'
+          })
+        })
+      })
     })
   })
+
   describe('getRouteLink', function () {})
   describe('getEventReportLink', function () {})
   describe('getJobLink', function () {})
+
   describe('hub event report', function () {
+    describe('eventUpdate', function () {})
     describe('eventComplete', function () {})
     describe('eventIgnore', function () {})
     describe('eventFail', function () {})
-    describe('eventUpdate', function () {})
   })
 })
 

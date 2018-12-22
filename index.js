@@ -12,20 +12,6 @@ const { reportError } = require('./lib/bugsnagHelper')
 
 process.env.DEBUG = process.env.DEBUG || 'envoy*'
 
-function unhandledExceptionHandler (err) {
-  logger.error('SDK', 'Caught unhandled async exception:', err)
-  reportError({ type: 'unhandled_async' }, {}, err)
-  process.exit()
-}
-
-function registerUnhandledExceptionHandler () {
-  if (global.isUnhandledExceptionHandlerRegistered) {
-    return
-  }
-  process.on('uncaughtException', unhandledExceptionHandler)
-  global.isUnhandledExceptionHandlerRegistered = true
-}
-
 function Platform (config) {
   this.config = config || {}
   this.config.key = this.config.key || process.env.ENVOY_PLUGIN_KEY
@@ -42,7 +28,6 @@ function Platform (config) {
   utils.loadHandlers(this.config.baseDir + '/workers', function (name, handler) {
     self.registerWorker(name, handler)
   })
-  registerUnhandledExceptionHandler()
 }
 Platform.prototype.handleError = function (event, e) {
   reportError({
@@ -82,24 +67,22 @@ Platform.prototype.registerWorker = function (event, fn) {
 Platform.prototype.getJobLink = function (path, queryParams = {}) {
   let jobId = get(this.req, 'job.id')
   if (!jobId) {
-    throw new Error('No job associated with this request.')
+    throw new Error('No job associated with this request')
   }
   return this.getRouteLink(path, Object.assign(queryParams, { _juuid: jobId }))
 }
 Platform.prototype.getEventReportLink = function (path, queryParams = {}) {
-  let hubEventId = this.req.event_report_id || this.req.query.event_report_id
+  let hubEventId = this.req.event_report_id || this.req.params.event_report_id
   if (!hubEventId) {
-    throw new Error('No hub event associated with this request.')
+    throw new Error('No hub event associated with this request')
   }
   return this.getRouteLink(path, Object.assign(queryParams, { event_report_id: hubEventId }))
 }
 Platform.prototype.getRouteLink = function (path, queryParams = {}) {
   if (!this.config.key) {
-    throw new Error('No plugin key.')
+    throw new Error('No plugin key')
   }
-  if (!this.config.baseUrl) {
-    throw new Error('No base url.')
-  }
+  path = path.replace(/^\//, '')
   let url = urijs(`${this.config.baseUrl}/platform/${this.config.key}/${path}`).query(queryParams)
   return url.toString()
 }

@@ -351,9 +351,3 @@ describe('index', function () {
     })
   })
 })
-
-/*
-TODO:
-  - email, sms, requests tests
-  - figure out route / worker autocomplete
-*/

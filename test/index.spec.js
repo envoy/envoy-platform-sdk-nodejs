@@ -16,6 +16,7 @@ describe('index', function () {
   })
   afterEach(function () {
     delete process.env.ENVOY_PLUGIN_KEY
+    sinon.restore()
   })
   def('EnvoyApi', () => sinon.stub().returns($.envoyApi))
   def('envoyApi', () => ({ updateEventReport: sinon.stub().resolves() }))
@@ -23,14 +24,19 @@ describe('index', function () {
   def('email', () => sinon.stub().returns({}))
   def('oauth2Routes', () => ({ connect: sinon.spy(), callback: sinon.spy() }))
   def('bugsnagHelper', () => ({ reportError: sinon.spy() }))
+  /* eslint-disable standard/no-callback-literal */
+  def('loadHandlers', () => (path, cb) =>
+    cb('welcome', path.match(/route/) ? $.routeHandler : $.workerHandler))
+  /* eslint-enable standard/no-callback-literal */
   def('Platform', () => proxyquire('../index.js', {
     './lib/bugsnagHelper': $.bugsnagHelper,
     './lib/oauth2Routes': $.oauth2Routes,
     './lib/sms': $.sms,
     './lib/email': $.email,
-    './lib/envoyApi': $.EnvoyApi
+    './lib/envoyApi': $.EnvoyApi,
+    './lib/utils': { loadHandlers: $.loadHandlers }
   }))
-  def('platform', () => new $.Platform())
+  def('platform', () => new $.Platform({ baseDir: '.' }))
   def('context', () => ({
     succeed: sinon.spy(),
     fail: sinon.spy(),
@@ -56,14 +62,12 @@ describe('index', function () {
   }))
   def('workerHandler', () => function (req, res) { res.job_complete('Sent', { payload: true }) })
   def('worker', () => async () => {
-    $.platform.registerWorker('welcome', $.workerHandler)
     const handler = $.platform.getHandler()
     const ret = handler($.workerEvent, $.context)
     if (ret instanceof Promise) { await ret }
   })
   def('routeHandler', () => function (req, res) { res.json({ welcome: true }) })
   def('route', () => async () => {
-    $.platform.registerRoute('welcome', $.routeHandler)
     const handler = $.platform.getHandler()
     const ret = handler($.routeEvent, $.context)
     if (ret instanceof Promise) { await ret }

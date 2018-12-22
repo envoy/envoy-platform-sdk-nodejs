@@ -29,37 +29,6 @@ class Platform {
     })
   }
 
-  handleError (event, e) {
-    reportError({
-      type: 'unhandled',
-      ...this.event
-    }, {
-      company: get(this.event, 'request_meta.company'),
-      location: get(this.event, 'request_meta.location')
-    }, e)
-    if (event.name === 'event' || (event.name === 'route' && this.req.job)) {
-      return this.res.job_fail('Failed', e.message || 'unhandled_error', e)
-    }
-    return this.res.error(e)
-  }
-
-  getLoggingSignature () {
-    return [
-      [ 'eventName', 'name' ],
-      [ 'workerName', 'request_meta.event' ],
-      [ 'routeName', 'request_meta.route' ],
-      [ 'jobId', 'request_meta.job.id' ],
-      [ 'eventReportId', 'event_report_id' ],
-      [ 'eventReportId', 'params.event_report_id' ],
-      [ 'companyId', 'request_meta.company.id' ],
-      [ 'locationId', 'request_meta.location.id' ]
-    ].map(e => [ e[0], get(this.event, e[1], null) ])
-      .filter(e => e[1])
-      .map(e => e.join('='))
-      .join('; ') +
-    ` ::`
-  }
-
   registerRoute (name, fn) {
     this._routes[name] = fn
   }
@@ -110,56 +79,86 @@ class Platform {
     return this.eventUpdate(statusMessage, 'failed', failureReason)
   }
 
-  handleEvent (event, context, callback) {
-    try {
-      this.res = new Response(this, context)
-      this.req = new Request(this, event, context)
-      Object.assign(this, {
-        sms: new Sms(this.req),
-        email: new Email(this.req)
-      })
-      this.start_time = process.hrtime()
-      this.event = event
-      this.context = context
-      let ret = null
-      if (event.name === 'route') {
-        ret = this._handleRoute(event, context)
-      } else if (event.name === 'event') {
-        ret = this._handleEvent(event, context)
-      } else {
-        throw new Error('event.name needs to be either "route" or "event"')
-      }
-      if (ret instanceof Promise) {
-        ret.catch(e => this.handleError(event, e))
-      }
-    } catch (e) {
-      this.handleError(event, e)
-    }
-  }
-
   getHandler () {
-    return this.handleEvent.bind(this)
+    return handler.bind(this)
   }
+}
 
-  _handleRoute (event, context) {
-    logger.info(this.getLoggingSignature(), 'Platform._handleRoute', event)
-    const headers = event.request_meta
-    if (typeof this._routes[headers.route] !== 'function') {
-      throw new Error('Invalid route configuration.')
+// private methods
+function handler (event, context, callback) {
+  try {
+    this.start_time = process.hrtime()
+    this.event = event
+    this.context = context
+    this.req = new Request(this, event, context)
+    this.res = new Response(this, context, getLoggingSignature.call(this))
+    this.sms = new Sms(this.req)
+    this.email = new Email(this.req)
+    let ret = null
+    if (event.name === 'route') {
+      ret = handleRoute.call(this, event, context)
+    } else if (event.name === 'event') {
+      ret = handleEvent.call(this, event, context)
+    } else {
+      throw new Error('event.name needs to be either "route" or "event"')
     }
-    const fn = this._routes[headers.route]
-    return fn.call(this, this.req, this.res)
+    if (ret instanceof Promise) {
+      ret.catch(e => handleError.call(this, event, e))
+    }
+  } catch (e) {
+    handleError.call(this, event, e)
   }
+}
 
-  _handleEvent (event, context) {
-    logger.info(this.getLoggingSignature(), 'Platform._handleEvent', event)
-    let headers = event.request_meta
-    if (typeof this._workers[headers.event] !== 'function') {
-      throw new Error('Invalid handler configuration [' + headers.event + ']')
-    }
-    let fn = this._workers[headers.event]
-    return fn.call(this, this.req, this.res)
+function handleEvent (event, context) {
+  logger.info(getLoggingSignature.call(this), 'Platform.handleEvent', event)
+  let headers = event.request_meta
+  if (typeof this._workers[headers.event] !== 'function') {
+    throw new Error('Invalid handler configuration [' + headers.event + ']')
   }
+  let fn = this._workers[headers.event]
+  return fn.call(this, this.req, this.res)
+}
+
+function handleRoute (event, context) {
+  logger.info(getLoggingSignature.call(this), 'Platform.handleRoute', event)
+  const headers = event.request_meta
+  if (typeof this._routes[headers.route] !== 'function') {
+    throw new Error('Invalid route configuration.')
+  }
+  const fn = this._routes[headers.route]
+  return fn.call(this, this.req, this.res)
+}
+
+function handleError (event, e) {
+  reportError({
+    type: 'unhandled',
+    ...this.event
+  }, {
+    company: get(this.event, 'request_meta.company'),
+    location: get(this.event, 'request_meta.location')
+  }, e)
+  if (event.name === 'event' || (event.name === 'route' && this.req.job)) {
+    return this.res.job_fail('Failed', e.message || 'unhandled_error', e)
+  }
+  return this.res.error(e)
+}
+
+function getLoggingSignature () {
+  return [
+    [ 'eventName', 'name' ],
+    [ 'workerName', 'request_meta.event' ],
+    [ 'routeName', 'request_meta.route' ],
+    [ 'jobId', 'request_meta.job.id' ],
+    [ 'eventReportId', 'event_report_id' ],
+    [ 'eventReportId', 'params.event_report_id' ],
+    [ 'companyId', 'request_meta.company.id' ],
+    [ 'locationId', 'request_meta.location.id' ]
+  ].map(e => [ e[0], get(this.event, e[1], null) ])
+    .filter(e => e[1])
+    .map(e => e.join('='))
+    .join('; ') +
+  ` ::`
 }
 
 module.exports = Platform

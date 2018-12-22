@@ -5,7 +5,8 @@
   "main": "index.js",
   "private": true,
   "scripts": {
-    "test": "standard && nyc mocha -u bdd-lazy-var/getter -R dot test/**"
+    "test": "standard && nyc mocha -u bdd-lazy-var/getter -R dot test/**",
+    "generate-types-readme": "jsdoc2md -f index.js lib/* > types.md"
   },
   "repository": {
     "type": "git",
@@ -38,6 +39,7 @@
     "bdd-lazy-var": "^2.5.0",
     "chai": "^4.1.2",
     "dirty-chai": "^2.0.1",
+    "jsdoc-to-markdown": "^4.0.1",
     "mocha": "^5.2.0",
     "nock": "^9.3.2",
     "nyc": "^12.0.2",

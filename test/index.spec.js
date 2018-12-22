@@ -22,7 +22,7 @@ describe('index', function () {
   def('envoyApi', () => ({ updateEventReport: sinon.stub().resolves() }))
   def('sms', () => sinon.stub().returns({}))
   def('email', () => sinon.stub().returns({}))
-  def('oauth2Routes', () => ({ connect: sinon.spy(), callback: sinon.spy() }))
+  def('oauth2Routes', () => ({ connect: $.routeHandler, callback: $.routeHandler }))
   def('bugsnagHelper', () => ({ reportError: sinon.spy() }))
   /* eslint-disable standard/no-callback-literal */
   def('loadHandlers', () => (path, cb) =>
@@ -53,23 +53,20 @@ describe('index', function () {
       params: $.params
     }
   }))
+  def('routeName', () => 'welcome')
   def('routeEvent', () => ({
     name: 'route',
     request_meta: {
-      route: 'welcome',
+      route: $.routeName,
       params: $.params
     }
   }))
+  def('event', () => $.routeEvent)
   def('workerHandler', () => function (req, res) { res.job_complete('Sent', { payload: true }) })
-  def('worker', () => async () => {
-    const handler = $.platform.getHandler()
-    const ret = handler($.workerEvent, $.context)
-    if (ret instanceof Promise) { await ret }
-  })
   def('routeHandler', () => function (req, res) { res.json({ welcome: true }) })
-  def('route', () => async () => {
+  def('subject', () => async () => {
     const handler = $.platform.getHandler()
-    const ret = handler($.routeEvent, $.context)
+    const ret = handler($.event, $.context)
     if (ret instanceof Promise) { await ret }
   })
   def('responsePayload', () =>
@@ -77,7 +74,6 @@ describe('index', function () {
     JSON.parse(_get($.context.fail, 'args[0][0]')))
   def('responseBody', () => $.responsePayload.body)
   def('responseMeta', () => $.responsePayload.meta)
-  def('subject', () => $.route)
 
   sharedExamplesFor('finished lambda event', function () {
     it('has a valid payload', async function () {
@@ -102,73 +98,108 @@ describe('index', function () {
     })
     itBehavesLike('finished lambda event')
   })
-
-  describe('getHandler', function () {
-    describe('route', function () {
-      def('subject', () => $.route)
-      itBehavesLike('successful lambda event')
-      it('returns payload', async function () {
-        await $.subject()
-        expect($.responseBody).to.deep.equal({
-          json: { welcome: true }
-        })
-      })
-      context('invalid handler', function () {
-        def('routeHandler', () => 'not a function')
-        itBehavesLike('failed lambda event')
-      })
-      context('invalid event', function () {
-        def('routeEvent', () => ({ name: 'aa', request_meta: {} }))
-        itBehavesLike('failed lambda event')
-      })
-      context('unhandled error', function () {
-        def('routeHandler', () => () => { throw new Error('no') })
-        itBehavesLike('failed lambda event')
-        context('async', function () {
-          def('routeHandler', () => async () => { throw new Error('no') })
-          itBehavesLike('failed lambda event')
-        })
+  sharedExamplesFor('successful route', function () {
+    itBehavesLike('successful lambda event')
+  })
+  sharedExamplesFor('failed route', function () {
+    itBehavesLike('failed lambda event')
+  })
+  sharedExamplesFor('successful worker', function () {
+    itBehavesLike('successful lambda event')
+    it('returns meta', async function () {
+      await $.subject()
+      expect($.responseMeta).to.deep.include({
+        set_job_status: 'done'
       })
     })
-    describe('worker', function () {
-      def('subject', () => $.worker)
-      itBehavesLike('successful lambda event')
-      it('returns meta', async function () {
+    it('returns payload', async function () {
+      await $.subject()
+      expect($.responseBody).to.exist()
+    })
+  })
+  sharedExamplesFor('failed worker', function () {
+    itBehavesLike('successful lambda event')
+    it('adds the failure metadata', async function () {
+      await $.subject()
+      expect($.responseMeta).to.deep.include({
+        set_job_status: 'failed'
+      })
+    })
+  })
+
+  describe('route', function () {
+    def('event', () => $.routeEvent)
+    itBehavesLike('successful route')
+    it('returns payload', async function () {
+      await $.subject()
+      expect($.responseBody).to.deep.equal({
+        json: { welcome: true }
+      })
+    })
+    context('invalid handler', function () {
+      def('routeHandler', () => 'not a function')
+      itBehavesLike('failed route')
+    })
+    context('invalid event', function () {
+      def('routeEvent', () => ({ name: 'aa', request_meta: {} }))
+      itBehavesLike('failed route')
+    })
+    context('unhandled error', function () {
+      def('routeHandler', () => () => { throw new Error('no') })
+      itBehavesLike('failed route')
+      context('async', function () {
+        def('routeHandler', () => async () => { throw new Error('no') })
+        itBehavesLike('failed route')
+      })
+    })
+    context('oauth', function () {
+      context('connect', function () {
+        def('routeName', () => 'oauth/connect')
+        itBehavesLike('successful route')
+      })
+      context('callback', function () {
+        def('routeName', () => 'oauth/callback')
+        itBehavesLike('successful route')
+      })
+    })
+  })
+
+  describe('worker', function () {
+    def('event', () => $.workerEvent)
+    itBehavesLike('successful worker')
+    it('returns meta', async function () {
+      await $.subject()
+      expect($.responseMeta).to.deep.include({
+        set_job_status_message: 'Sent'
+      })
+    })
+    it('returns payload', async function () {
+      await $.subject()
+      expect($.responseBody).to.deep.equal({
+        payload: true
+      })
+    })
+    context('invalid handler', function () {
+      def('workerHandler', () => 'not a function')
+      itBehavesLike('failed worker')
+      it('adds status message', async function () {
         await $.subject()
         expect($.responseMeta).to.deep.include({
-          set_job_status: 'done',
-          set_job_status_message: 'Sent'
-        })
-      })
-      it('returns payload', async function () {
-        await $.subject()
-        expect($.responseBody).to.deep.equal({
-          payload: true
-        })
-      })
-      context('invalid handler', function () {
-        def('workerHandler', () => 'not a function')
-        itBehavesLike('successful lambda event')
-        it('adds the failure metadata', async function () {
-          await $.subject()
-          expect($.responseMeta).to.deep.include({
-            set_job_status: 'failed',
-            set_job_status_message: 'Failed'
-          })
+          set_job_status_message: 'Failed'
         })
       })
     })
   })
 
   describe('event helpers', function () {
-    def('subject', () => $.worker)
+    def('event', () => $.workerEvent)
     def('url', () => sinon.spy())
     describe('getRouteLink', function () {
       def('workerHandler', () => async function (req, res) {
         $.url(this.getRouteLink('/url'))
         res.job_complete('Ok', {})
       })
-      itBehavesLike('finished lambda event')
+      itBehavesLike('successful worker')
       it('should return route link', async function () {
         await $.subject()
         expect($.url).to.have.been.calledWith(
@@ -178,7 +209,7 @@ describe('index', function () {
         beforeEach(function () {
           delete process.env.ENVOY_PLUGIN_KEY
         })
-        itBehavesLike('finished lambda event')
+        itBehavesLike('failed worker')
         it('fails', async function () {
           await $.subject()
           expect($.responseMeta).to.deep.include({
@@ -192,7 +223,7 @@ describe('index', function () {
         $.url(this.getJobLink('/url'))
         res.job_complete('Ok', {})
       })
-      itBehavesLike('finished lambda event')
+      itBehavesLike('successful worker')
       it('should return route link', async function () {
         await $.subject()
         expect($.url).to.have.been.calledWith(
@@ -200,7 +231,7 @@ describe('index', function () {
       })
       context('with no job id', function () {
         def('job', () => null)
-        itBehavesLike('finished lambda event')
+        itBehavesLike('failed worker')
         it('fails', async function () {
           await $.subject()
           expect($.responseMeta).to.deep.include({
@@ -234,7 +265,7 @@ describe('index', function () {
         await this.eventUpdate('Sent')
         res.json({ welcome: true })
       })
-      itBehavesLike('finished lambda event')
+      itBehavesLike('successful route')
       itBehavesLike('updates hub event report')
       def('expectedEventReport', () => ({
         id: 'hub::event::id',
@@ -248,7 +279,7 @@ describe('index', function () {
         await this.eventComplete('Sent')
         res.json({ welcome: true })
       })
-      itBehavesLike('finished lambda event')
+      itBehavesLike('successful route')
       itBehavesLike('updates hub event report')
       def('expectedEventReport', () => ({
         id: 'hub::event::id',
@@ -262,7 +293,7 @@ describe('index', function () {
         await this.eventIgnore('Not Sent', 'User not found')
         res.json({ welcome: true })
       })
-      itBehavesLike('finished lambda event')
+      itBehavesLike('successful route')
       itBehavesLike('updates hub event report')
       def('expectedEventReport', () => ({
         id: 'hub::event::id',
@@ -276,7 +307,7 @@ describe('index', function () {
         await this.eventFail('Not Sent', 'Not enough credit')
         res.json({ welcome: true })
       })
-      itBehavesLike('finished lambda event')
+      itBehavesLike('successful route')
       itBehavesLike('updates hub event report')
       def('expectedEventReport', () => ({
         id: 'hub::event::id',
@@ -289,7 +320,7 @@ describe('index', function () {
       def('routeHandler', () => async function (req, res) {
         res.json({ url: this.getEventReportLink('/url') })
       })
-      itBehavesLike('finished lambda event')
+      itBehavesLike('successful route')
       it('should return route link', async function () {
         await $.subject()
         expect($.responseBody.json.url).to.equal(
@@ -300,7 +331,7 @@ describe('index', function () {
           ...$.params,
           event_report_id: null
         }))
-        itBehavesLike('failed lambda event')
+        itBehavesLike('failed route')
         it('fails', async function () {
           await $.subject()
           expect($.responseBody.message).to.equal(
@@ -315,8 +346,6 @@ describe('index', function () {
 TODO:
   - add jsdoc
   - format index to class style
-  - hide unused methods (verify)
   - email, sms, requests tests
-  - factor utils in platform
   - figure out route / worker autocomplete
 */

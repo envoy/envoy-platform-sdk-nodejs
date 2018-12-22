@@ -18,7 +18,7 @@ Store local environment variables in `.env.local` and production environment var
 ...
 
 ## Using the SDK
->> [a Types Documentation](types.md)
+[generated documentation](types.md)
 
 ## Environment variables
 | Environment variable name    | required for | note         |

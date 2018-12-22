@@ -11,7 +11,8 @@ const expect = chai.expect
 
 describe('index', function () {
   this.timeout(20e3)
-  def('envoyApi', () => ({ eventUpdate: sinon.stub().resolves() }))
+  def('EnvoyApi', () => sinon.stub().returns($.envoyApi))
+  def('envoyApi', () => ({ updateEventReport: sinon.stub().resolves() }))
   def('sms', () => sinon.stub().returns({}))
   def('email', () => sinon.stub().returns({}))
   def('oauth2Routes', () => ({ connect: sinon.spy(), callback: sinon.spy() }))
@@ -20,7 +21,8 @@ describe('index', function () {
     './lib/bugsnagHelper': $.bugsnagHelper,
     './lib/oauth2Routes': $.oauth2Routes,
     './lib/sms': $.sms,
-    './lib/email': $.email
+    './lib/email': $.email,
+    './lib/envoyApi': $.EnvoyApi
   }))
   def('platform', () => new $.Platform())
   def('context', () => ({
@@ -29,7 +31,21 @@ describe('index', function () {
     awsRequestId: 'aws::id::test',
     logStreamName: 'logstreamname'
   }))
-  def('workerEvent', () => ({ name: 'event', request_meta: { event: 'welcome' } }))
+  def('params', () => ({}))
+  def('workerEvent', () => ({
+    name: 'event',
+    request_meta: {
+      event: 'welcome',
+      ...$.params
+    }
+  }))
+  def('routeEvent', () => ({
+    name: 'route',
+    request_meta: {
+      route: 'welcome',
+      ...$.params
+    }
+  }))
   def('workerHandler', () => function (req, res) { res.job_complete('Sent', { payload: true }) })
   def('worker', () => async () => {
     $.platform.registerWorker('welcome', $.workerHandler)
@@ -37,7 +53,6 @@ describe('index', function () {
     const ret = handler($.workerEvent, $.context)
     if (ret instanceof Promise) { await ret }
   })
-  def('routeEvent', () => ({ name: 'route', request_meta: { route: 'welcome' } }))
   def('routeHandler', () => function (req, res) { res.json({ welcome: true }) })
   def('route', () => async () => {
     $.platform.registerRoute('welcome', $.routeHandler)
@@ -132,15 +147,86 @@ describe('index', function () {
     })
   })
 
-  describe('getRouteLink', function () {})
-  describe('getEventReportLink', function () {})
-  describe('getJobLink', function () {})
+  describe('event helpers', function () {
+    describe('getRouteLink', function () {})
+    describe('getJobLink', function () {})
+  })
 
-  describe('hub event report', function () {
-    describe('eventUpdate', function () {})
-    describe('eventComplete', function () {})
-    describe('eventIgnore', function () {})
-    describe('eventFail', function () {})
+  describe('hub event helpers', function () {
+    def('subject', () => $.route)
+    def('params', () => ({
+      ...$.params,
+      event_report_id: 'hub::event::id'
+    }))
+
+    sharedExamplesFor('updates hub event report', function () {
+      it('updates hub event report', async function () {
+        await $.subject()
+        expect($.envoyApi.updateEventReport).to.have.been.calledWith(
+          $.expectedEventReport.id,
+          $.expectedEventReport.summary,
+          $.expectedEventReport.status,
+          $.expectedEventReport.failureReason
+        )
+      })
+    })
+
+    describe('eventUpdate', function () {
+      def('routeHandler', () => function (req, res) {
+        this.eventUpdate('Sent')
+        res.json({ welcome: true })
+      })
+      itBehavesLike('finished lambda event')
+      itBehavesLike('updates hub event report')
+      def('expectedEventReport', () => ({
+        id: 'hub::event::id',
+        status: 'in_progress',
+        summary: 'Sent',
+        failureReason: null
+      }))
+    })
+    describe('eventComplete', function () {
+      def('routeHandler', () => function (req, res) {
+        this.eventComplete('Sent')
+        res.json({ welcome: true })
+      })
+      itBehavesLike('finished lambda event')
+      itBehavesLike('updates hub event report')
+      def('expectedEventReport', () => ({
+        id: 'hub::event::id',
+        status: 'done',
+        summary: 'Sent',
+        failureReason: null
+      }))
+    })
+    describe('eventIgnore', function () {
+      def('routeHandler', () => function (req, res) {
+        this.eventIgnore('Not Sent', 'User not found')
+        res.json({ welcome: true })
+      })
+      itBehavesLike('finished lambda event')
+      itBehavesLike('updates hub event report')
+      def('expectedEventReport', () => ({
+        id: 'hub::event::id',
+        status: 'ignored',
+        summary: 'Not Sent',
+        failureReason: 'User not found'
+      }))
+    })
+    describe('eventFail', function () {
+      def('routeHandler', () => function (req, res) {
+        this.eventFail('Not Sent', 'Not enough credit')
+        res.json({ welcome: true })
+      })
+      itBehavesLike('finished lambda event')
+      itBehavesLike('updates hub event report')
+      def('expectedEventReport', () => ({
+        id: 'hub::event::id',
+        status: 'failed',
+        summary: 'Not Sent',
+        failureReason: 'Not enough credit'
+      }))
+    })
   })
 })
 

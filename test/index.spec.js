@@ -11,6 +11,12 @@ const expect = chai.expect
 
 describe('index', function () {
   this.timeout(20e3)
+  beforeEach(function () {
+    process.env.ENVOY_PLUGIN_KEY = 'skype'
+  })
+  afterEach(function () {
+    delete process.env.ENVOY_PLUGIN_KEY
+  })
   def('EnvoyApi', () => sinon.stub().returns($.envoyApi))
   def('envoyApi', () => ({ updateEventReport: sinon.stub().resolves() }))
   def('sms', () => sinon.stub().returns({}))
@@ -32,18 +38,20 @@ describe('index', function () {
     logStreamName: 'logstreamname'
   }))
   def('params', () => ({}))
+  def('job', () => ({ id: 'job::id' }))
   def('workerEvent', () => ({
     name: 'event',
     request_meta: {
       event: 'welcome',
-      ...$.params
+      job: $.job,
+      params: $.params
     }
   }))
   def('routeEvent', () => ({
     name: 'route',
     request_meta: {
       route: 'welcome',
-      ...$.params
+      params: $.params
     }
   }))
   def('workerHandler', () => function (req, res) { res.job_complete('Sent', { payload: true }) })
@@ -65,6 +73,7 @@ describe('index', function () {
     JSON.parse(_get($.context.fail, 'args[0][0]')))
   def('responseBody', () => $.responsePayload.body)
   def('responseMeta', () => $.responsePayload.meta)
+  def('subject', () => $.route)
 
   sharedExamplesFor('finished lambda event', function () {
     it('has a valid payload', async function () {
@@ -148,12 +157,57 @@ describe('index', function () {
   })
 
   describe('event helpers', function () {
-    describe('getRouteLink', function () {})
-    describe('getJobLink', function () {})
+    def('subject', () => $.worker)
+    def('url', () => sinon.spy())
+    describe('getRouteLink', function () {
+      def('workerHandler', () => async function (req, res) {
+        $.url(this.getRouteLink('/url'))
+        res.job_complete('Ok', {})
+      })
+      itBehavesLike('finished lambda event')
+      it('should return route link', async function () {
+        await $.subject()
+        expect($.url).to.have.been.calledWith(
+          'https://app.envoy.com/platform/skype/url')
+      })
+      context('undefined plugin key', function () {
+        beforeEach(function () {
+          delete process.env.ENVOY_PLUGIN_KEY
+        })
+        itBehavesLike('finished lambda event')
+        it('fails', async function () {
+          await $.subject()
+          expect($.responseMeta).to.deep.include({
+            set_job_failure_message: 'No plugin key'
+          })
+        })
+      })
+    })
+    describe('getJobLink', function () {
+      def('workerHandler', () => async function (req, res) {
+        $.url(this.getJobLink('/url'))
+        res.job_complete('Ok', {})
+      })
+      itBehavesLike('finished lambda event')
+      it('should return route link', async function () {
+        await $.subject()
+        expect($.url).to.have.been.calledWith(
+          'https://app.envoy.com/platform/skype/url?_juuid=job%3A%3Aid')
+      })
+      context('with no job id', function () {
+        def('job', () => null)
+        itBehavesLike('finished lambda event')
+        it('fails', async function () {
+          await $.subject()
+          expect($.responseMeta).to.deep.include({
+            set_job_failure_message: 'No job associated with this request'
+          })
+        })
+      })
+    })
   })
 
   describe('hub event helpers', function () {
-    def('subject', () => $.route)
     def('params', () => ({
       ...$.params,
       event_report_id: 'hub::event::id'
@@ -172,8 +226,8 @@ describe('index', function () {
     })
 
     describe('eventUpdate', function () {
-      def('routeHandler', () => function (req, res) {
-        this.eventUpdate('Sent')
+      def('routeHandler', () => async function (req, res) {
+        await this.eventUpdate('Sent')
         res.json({ welcome: true })
       })
       itBehavesLike('finished lambda event')
@@ -186,8 +240,8 @@ describe('index', function () {
       }))
     })
     describe('eventComplete', function () {
-      def('routeHandler', () => function (req, res) {
-        this.eventComplete('Sent')
+      def('routeHandler', () => async function (req, res) {
+        await this.eventComplete('Sent')
         res.json({ welcome: true })
       })
       itBehavesLike('finished lambda event')
@@ -200,8 +254,8 @@ describe('index', function () {
       }))
     })
     describe('eventIgnore', function () {
-      def('routeHandler', () => function (req, res) {
-        this.eventIgnore('Not Sent', 'User not found')
+      def('routeHandler', () => async function (req, res) {
+        await this.eventIgnore('Not Sent', 'User not found')
         res.json({ welcome: true })
       })
       itBehavesLike('finished lambda event')
@@ -214,8 +268,8 @@ describe('index', function () {
       }))
     })
     describe('eventFail', function () {
-      def('routeHandler', () => function (req, res) {
-        this.eventFail('Not Sent', 'Not enough credit')
+      def('routeHandler', () => async function (req, res) {
+        await this.eventFail('Not Sent', 'Not enough credit')
         res.json({ welcome: true })
       })
       itBehavesLike('finished lambda event')
@@ -226,6 +280,29 @@ describe('index', function () {
         summary: 'Not Sent',
         failureReason: 'Not enough credit'
       }))
+    })
+    describe('getEventReportLink', function () {
+      def('routeHandler', () => async function (req, res) {
+        res.json({ url: this.getEventReportLink('/url') })
+      })
+      itBehavesLike('finished lambda event')
+      it('should return route link', async function () {
+        await $.subject()
+        expect($.responseBody.json.url).to.equal(
+          'https://app.envoy.com/platform/skype/url?event_report_id=hub%3A%3Aevent%3A%3Aid')
+      })
+      context('no event id', function () {
+        def('params', () => ({
+          ...$.params,
+          event_report_id: null
+        }))
+        itBehavesLike('failed lambda event')
+        it('fails', async function () {
+          await $.subject()
+          expect($.responseBody.message).to.equal(
+            'No hub event associated with this request')
+        })
+      })
     })
   })
 })

@@ -100,6 +100,11 @@ describe('index', function () {
   })
   sharedExamplesFor('successful route', function () {
     itBehavesLike('successful lambda event')
+    it('has helpers attached', async function () {
+      await $.subject()
+      expect($.platform.sms).to.exist()
+      expect($.platform.email).to.exist()
+    })
   })
   sharedExamplesFor('failed route', function () {
     itBehavesLike('failed lambda event')
@@ -115,6 +120,11 @@ describe('index', function () {
     it('returns payload', async function () {
       await $.subject()
       expect($.responseBody).to.exist()
+    })
+    it('has helpers attached', async function () {
+      await $.subject()
+      expect($.platform.sms).to.exist()
+      expect($.platform.email).to.exist()
     })
   })
   sharedExamplesFor('failed worker', function () {
@@ -344,8 +354,6 @@ describe('index', function () {
 
 /*
 TODO:
-  - add jsdoc
-  - format index to class style
   - email, sms, requests tests
   - figure out route / worker autocomplete
 */

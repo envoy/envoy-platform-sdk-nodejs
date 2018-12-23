@@ -7,6 +7,8 @@
 <dd></dd>
 <dt><a href="#Response">Response</a></dt>
 <dd></dd>
+<dt><a href="#Sms">Sms</a></dt>
+<dd></dd>
 </dl>
 
 ## Typedefs
@@ -28,6 +30,9 @@
 </dd>
 <dt><a href="#JobAttachment">JobAttachment</a> : <code>Object</code></dt>
 <dd></dd>
+<dt><a href="#Sms">Sms</a> : <code>Object</code></dt>
+<dd><p>Helper to send sms, based on available metadata.</p>
+</dd>
 </dl>
 
 <a name="Platform"></a>
@@ -561,6 +566,71 @@ res.meta('set_env', { 'TOKEN': 'some::token::value' })
 DEPRECATED; DO NOT USE. Use specialized methods instead.
 
 **Kind**: instance method of [<code>Response</code>](#Response)  
+<a name="Sms"></a>
+
+## Sms
+**Kind**: global class  
+
+* [Sms](#Sms)
+    * [new Sms(req)](#new_Sms_new)
+    * [.send(targetPhoneNumber, messageText)](#Sms+send)
+    * [.sendToEntry(messageText)](#Sms+sendToEntry)
+    * [.makeInternational(phoneNumber)](#Sms+makeInternational) ⇒ <code>string</code>
+    * [.getEntryInternationalPhoneNumber()](#Sms+getEntryInternationalPhoneNumber) ⇒ <code>string</code>
+
+<a name="new_Sms_new"></a>
+
+### new Sms(req)
+Helper to send sms, based on available metadata.
+
+
+| Param | Type | Description |
+| --- | --- | --- |
+| req | [<code>Request</code>](#Request) | Request object to get metadata from |
+
+<a name="Sms+send"></a>
+
+### sms.send(targetPhoneNumber, messageText)
+Sends sms to a given phone number. Attempts to convert the
+number to international format before sending to Twillio.
+
+**Kind**: instance method of [<code>Sms</code>](#Sms)  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| targetPhoneNumber | <code>string</code> | Phone number to send the message to |
+| messageText | <code>string</code> | Sms message |
+
+<a name="Sms+sendToEntry"></a>
+
+### sms.sendToEntry(messageText)
+Sends an sms to the visitor's phone number
+
+**Kind**: instance method of [<code>Sms</code>](#Sms)  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| messageText | <code>string</code> | Sms message |
+
+<a name="Sms+makeInternational"></a>
+
+### sms.makeInternational(phoneNumber) ⇒ <code>string</code>
+Converts a phone number to international format based on available information.
+
+**Kind**: instance method of [<code>Sms</code>](#Sms)  
+**Returns**: <code>string</code> - Phone number in international format  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| phoneNumber | <code>string</code> | Phone number |
+
+<a name="Sms+getEntryInternationalPhoneNumber"></a>
+
+### sms.getEntryInternationalPhoneNumber() ⇒ <code>string</code>
+Gets visitor's phone number in international format.
+
+**Kind**: instance method of [<code>Sms</code>](#Sms)  
+**Returns**: <code>string</code> - Phone number in international format  
 <a name="Platform"></a>
 
 ## Platform : <code>Object</code>
@@ -573,7 +643,7 @@ Envoy platform instance for AWS lambda deployments
 | --- | --- | --- |
 | req | [<code>Request</code>](#Request) | Incoming request object |
 | res | [<code>Response</code>](#Response) | Outgoing response object |
-| sms | <code>Sms</code> | Sms helper based on Twilio |
+| sms | [<code>Sms</code>](#Sms) | Sms helper based on Twilio |
 | email | <code>Email</code> | Email helper based on Mandrill |
 
 
@@ -1137,3 +1207,70 @@ DEPRECATED; DO NOT USE. Use specialized methods instead.
 | label | <code>string</code> | Label to show in the interface |
 | value | <code>string</code> | Associated value |
 
+<a name="Sms"></a>
+
+## Sms : <code>Object</code>
+Helper to send sms, based on available metadata.
+
+**Kind**: global typedef  
+
+* [Sms](#Sms) : <code>Object</code>
+    * [new Sms(req)](#new_Sms_new)
+    * [.send(targetPhoneNumber, messageText)](#Sms+send)
+    * [.sendToEntry(messageText)](#Sms+sendToEntry)
+    * [.makeInternational(phoneNumber)](#Sms+makeInternational) ⇒ <code>string</code>
+    * [.getEntryInternationalPhoneNumber()](#Sms+getEntryInternationalPhoneNumber) ⇒ <code>string</code>
+
+<a name="new_Sms_new"></a>
+
+### new Sms(req)
+Helper to send sms, based on available metadata.
+
+
+| Param | Type | Description |
+| --- | --- | --- |
+| req | [<code>Request</code>](#Request) | Request object to get metadata from |
+
+<a name="Sms+send"></a>
+
+### sms.send(targetPhoneNumber, messageText)
+Sends sms to a given phone number. Attempts to convert the
+number to international format before sending to Twillio.
+
+**Kind**: instance method of [<code>Sms</code>](#Sms)  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| targetPhoneNumber | <code>string</code> | Phone number to send the message to |
+| messageText | <code>string</code> | Sms message |
+
+<a name="Sms+sendToEntry"></a>
+
+### sms.sendToEntry(messageText)
+Sends an sms to the visitor's phone number
+
+**Kind**: instance method of [<code>Sms</code>](#Sms)  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| messageText | <code>string</code> | Sms message |
+
+<a name="Sms+makeInternational"></a>
+
+### sms.makeInternational(phoneNumber) ⇒ <code>string</code>
+Converts a phone number to international format based on available information.
+
+**Kind**: instance method of [<code>Sms</code>](#Sms)  
+**Returns**: <code>string</code> - Phone number in international format  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| phoneNumber | <code>string</code> | Phone number |
+
+<a name="Sms+getEntryInternationalPhoneNumber"></a>
+
+### sms.getEntryInternationalPhoneNumber() ⇒ <code>string</code>
+Gets visitor's phone number in international format.
+
+**Kind**: instance method of [<code>Sms</code>](#Sms)  
+**Returns**: <code>string</code> - Phone number in international format  

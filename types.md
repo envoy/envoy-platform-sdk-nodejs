@@ -5,6 +5,8 @@
 <dd></dd>
 <dt><a href="#Request">Request</a></dt>
 <dd></dd>
+<dt><a href="#Response">Response</a></dt>
+<dd></dd>
 </dl>
 
 ## Typedefs
@@ -18,6 +20,14 @@
 <dt><a href="#Request">Request</a> : <code>Object</code></dt>
 <dd><p>Request object associated with a certain event</p>
 </dd>
+<dt><a href="#Response">Response</a> : <code>Object</code></dt>
+<dd><p>Response helper, with methods to configure and return the plugin response</p>
+<ul>
+<li>note the methods can be called in both camel case and snake case for legacy support purposes</li>
+</ul>
+</dd>
+<dt><a href="#JobAttachment">JobAttachment</a> : <code>Object</code></dt>
+<dd></dd>
 </dl>
 
 <a name="Platform"></a>
@@ -224,6 +234,333 @@ Request object associated with a certain event
 | src | <code>\*</code> | AWS Lambda event object |
 | context | <code>\*</code> | AWS Lambda context object |
 
+<a name="Response"></a>
+
+## Response
+**Kind**: global class  
+
+* [Response](#Response)
+    * [new Response(platform, context, loggingPrefix)](#new_Response_new)
+    * [.jobUpdate(status, data)](#Response+jobUpdate)
+    * [.jobIgnore(status, reason, data)](#Response+jobIgnore)
+    * [.jobComplete(status, data)](#Response+jobComplete)
+    * [.jobFail(status, data)](#Response+jobFail)
+    * [.pluginFail(status, data)](#Response+pluginFail)
+    * [.jobAttach(...attachments)](#Response+jobAttach)
+    * [.succeed(data)](#Response+succeed)
+    * [.raw(text, status)](#Response+raw)
+    * [.json(data, status)](#Response+json)
+    * [.view(path, status)](#Response+view)
+    * [.html(html, status)](#Response+html)
+    * [.redirect(url)](#Response+redirect)
+    * [.error(error)](#Response+error)
+    * [.httpHeader(header, value)](#Response+httpHeader)
+    * [.meta(header, value)](#Response+meta)
+    * [._respond()](#Response+_respond)
+
+<a name="new_Response_new"></a>
+
+### new Response(platform, context, loggingPrefix)
+Response helper, with methods to configure and return the plugin response
+
+
+| Param | Type | Description |
+| --- | --- | --- |
+| platform | [<code>Platform</code>](#Platform) | Envoy platform instance |
+| context | <code>\*</code> | AWS Lambda context object |
+| loggingPrefix | <code>string</code> | add a prefix to the response log lines) |
+
+<a name="Response+jobUpdate"></a>
+
+### response.jobUpdate(status, data)
+Sets the job status to "in_progress" and updates status message.
+The lambda function is completed only if the `data` parameter is given.
+* works only if called in a job, or route with a job context
+
+**Kind**: instance method of [<code>Response</code>](#Response)  
+
+| Param | Type | Default | Description |
+| --- | --- | --- | --- |
+| status | <code>string</code> |  | Status message |
+| data | <code>\*</code> | <code></code> | Any detailed data object to assist debugging. |
+
+**Example**  
+```js
+// from route
+res.jobUpdate('Queued')
+res.json({ 'something': 'for external use' })
+// from worker
+res.jobUpdate('Queued', { 'some': 'debug object' })
+```
+<a name="Response+jobIgnore"></a>
+
+### response.jobIgnore(status, reason, data)
+Sets the job status to "ignored" and updates status message.
+The lambda function is completed only if the `data` parameter is given.
+* works only if called in a job, or route with a job context
+
+**Kind**: instance method of [<code>Response</code>](#Response)  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| status | <code>string</code> | Status message |
+| reason | <code>string</code> | Reason why the job is ignored |
+| data | <code>\*</code> | Any detailed data object to assist debugging. |
+
+**Example**  
+```js
+// from route
+res.jobIgnore('Not sent', 'user_not_found')
+res.json({ 'something': 'for external use' })
+
+// from worker
+res.jobIgnore('Not sent', 'user_not_found', { 'some': 'debug object' })
+```
+<a name="Response+jobComplete"></a>
+
+### response.jobComplete(status, data)
+Sets the job status to "done" and updates status message.
+The lambda function is completed only if the `data` parameter is given.
+* works only if called in a job, or route with a job context
+
+**Kind**: instance method of [<code>Response</code>](#Response)  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| status | <code>string</code> | Status message |
+| data | <code>\*</code> | Any detailed data object to assist debugging. |
+
+**Example**  
+```js
+// from route
+res.jobComplete('Sent')
+res.json({ 'something': 'for external use' })
+
+// from worker
+res.jobComplete('Sent', { 'some': 'debug object' })
+```
+<a name="Response+jobFail"></a>
+
+### response.jobFail(status, data)
+Sets the job status to "failed" and updates status message.
+The lambda function is completed only if the `data` parameter is given.
+* works only if called in a job, or route with a job context
+
+**Kind**: instance method of [<code>Response</code>](#Response)  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| status | <code>string</code> | Status message |
+| data | <code>\*</code> | Any detailed data object to assist debugging. |
+
+**Example**  
+```js
+// from route
+res.jobFail('Queued')
+res.json({ 'something': 'for external use' })
+
+// from worker
+res.jobFail('Queued', { 'some': 'debug object' })
+```
+<a name="Response+pluginFail"></a>
+
+### response.pluginFail(status, data)
+Sets the job status to "failed", updates status message and *disables* the plugin.
+The behaviour is intended for cases where a plugin is in an unrecoverable state.
+The lambda function is completed only if the `data` parameter is given.
+* works only if called in a job, or route with a job context
+
+**Kind**: instance method of [<code>Response</code>](#Response)  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| status | <code>string</code> | Status message |
+| data | <code>\*</code> | Any detailed data object to assist debugging. |
+
+**Example**  
+```js
+// from route
+res.pluginFail('Not sent', 'unauthorized')
+res.json({ 'something': 'for external use' })
+
+// from worker
+res.pluginFail('Not sent', 'unauthorized', { 'some': 'debug object' })
+```
+<a name="Response+jobAttach"></a>
+
+### response.jobAttach(...attachments)
+Associates response attachments to a job. This information is visible to the user according to a given format.
+* works only if called in a job, or route with a job context
+
+**Kind**: instance method of [<code>Response</code>](#Response)  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| ...attachments | [<code>JobAttachment</code>](#JobAttachment) | Attachments to associate with a job |
+
+**Example**  
+```js
+res.jobAttach({
+ type: 'link',
+ label: 'NDA',
+ value: 'https://somendaurl'
+}, {
+ type: 'password',
+ label: 'WiFi password',
+ value: '123'
+})
+```
+<a name="Response+succeed"></a>
+
+### response.succeed(data)
+Returns a raw object to Envoy API.
+Generally used for routes that validate installation flow
+
+**Kind**: instance method of [<code>Response</code>](#Response)  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| data | <code>\*</code> | Object to send |
+
+**Example**  
+```js
+function (req, res) {
+ if (!req.body.mandatoryArgument) { return res.error('no') }
+ res.succeed(req.body)
+}
+```
+<a name="Response+raw"></a>
+
+### response.raw(text, status)
+Returns a raw text response.
+
+**Kind**: instance method of [<code>Response</code>](#Response)  
+
+| Param | Type | Default | Description |
+| --- | --- | --- | --- |
+| text | <code>string</code> |  | text to return |
+| status | <code>number</code> | <code></code> | http status code |
+
+**Example**  
+```js
+res.raw('hello')
+```
+<a name="Response+json"></a>
+
+### response.json(data, status)
+Returns a json response.
+
+**Kind**: instance method of [<code>Response</code>](#Response)  
+
+| Param | Type | Default | Description |
+| --- | --- | --- | --- |
+| data | <code>\*</code> |  | object to serialize |
+| status | <code>number</code> | <code></code> | http status code |
+
+**Example**  
+```js
+res.json({ ok: true })
+```
+<a name="Response+view"></a>
+
+### response.view(path, status)
+Returns a html response based on a view path.
+
+**Kind**: instance method of [<code>Response</code>](#Response)  
+
+| Param | Type | Default | Description |
+| --- | --- | --- | --- |
+| path | <code>string</code> |  | relative path to _./views_ plugin folder |
+| status | <code>number</code> | <code></code> | http status code |
+
+**Example**  
+```js
+res.view({ ok: true })
+```
+<a name="Response+html"></a>
+
+### response.html(html, status)
+Returns a html response.
+
+**Kind**: instance method of [<code>Response</code>](#Response)  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| html | <code>string</code> | html code |
+| status | <code>number</code> | http status code |
+
+**Example**  
+```js
+res.html('<html></html>')
+```
+<a name="Response+redirect"></a>
+
+### response.redirect(url)
+Redirects to a different endpoint
+
+**Kind**: instance method of [<code>Response</code>](#Response)  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| url | <code>string</code> | url to redirect to |
+
+**Example**  
+```js
+res.redirect('http://otherpage')
+```
+<a name="Response+error"></a>
+
+### response.error(error)
+Returns an error
+
+**Kind**: instance method of [<code>Response</code>](#Response)  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| error | <code>\*</code> | Error object. Doesn't necessarily have to be an _Error_ object. |
+
+**Example**  
+```js
+res.error({ message: 'Not authorized' })
+```
+<a name="Response+httpHeader"></a>
+
+### response.httpHeader(header, value)
+Sets custom http headers
+
+**Kind**: instance method of [<code>Response</code>](#Response)  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| header | <code>string</code> | header to modify |
+| value | <code>string</code> | header value to set |
+
+**Example**  
+```js
+res.httpHeader('Content-Type', 'application/xml')
+```
+<a name="Response+meta"></a>
+
+### response.meta(header, value)
+Sets custom response meta to Envoy API
+
+**Kind**: instance method of [<code>Response</code>](#Response)  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| header | <code>string</code> | meta to modify |
+| value | <code>\*</code> | value to set |
+
+**Example**  
+```js
+res.meta('set_env', { 'TOKEN': 'some::token::value' })
+```
+<a name="Response+_respond"></a>
+
+### response.\_respond()
+DEPRECATED; DO NOT USE. Use specialized methods instead.
+
+**Kind**: instance method of [<code>Response</code>](#Response)  
 <a name="Platform"></a>
 
 ## Platform : <code>Object</code>
@@ -235,7 +572,7 @@ Envoy platform instance for AWS lambda deployments
 | Name | Type | Description |
 | --- | --- | --- |
 | req | [<code>Request</code>](#Request) | Incoming request object |
-| res | <code>Response</code> | Outgoing response object |
+| res | [<code>Response</code>](#Response) | Outgoing response object |
 | sms | <code>Sms</code> | Sms helper based on Twilio |
 | email | <code>Email</code> | Email helper based on Mandrill |
 
@@ -457,4 +794,346 @@ Request object associated with a certain event
 | platform | [<code>Platform</code>](#Platform) | Envoy Platform object that handles the event |
 | src | <code>\*</code> | AWS Lambda event object |
 | context | <code>\*</code> | AWS Lambda context object |
+
+<a name="Response"></a>
+
+## Response : <code>Object</code>
+Response helper, with methods to configure and return the plugin response
+* note the methods can be called in both camel case and snake case for legacy support purposes
+
+**Kind**: global typedef  
+
+* [Response](#Response) : <code>Object</code>
+    * [new Response(platform, context, loggingPrefix)](#new_Response_new)
+    * [.jobUpdate(status, data)](#Response+jobUpdate)
+    * [.jobIgnore(status, reason, data)](#Response+jobIgnore)
+    * [.jobComplete(status, data)](#Response+jobComplete)
+    * [.jobFail(status, data)](#Response+jobFail)
+    * [.pluginFail(status, data)](#Response+pluginFail)
+    * [.jobAttach(...attachments)](#Response+jobAttach)
+    * [.succeed(data)](#Response+succeed)
+    * [.raw(text, status)](#Response+raw)
+    * [.json(data, status)](#Response+json)
+    * [.view(path, status)](#Response+view)
+    * [.html(html, status)](#Response+html)
+    * [.redirect(url)](#Response+redirect)
+    * [.error(error)](#Response+error)
+    * [.httpHeader(header, value)](#Response+httpHeader)
+    * [.meta(header, value)](#Response+meta)
+    * [._respond()](#Response+_respond)
+
+<a name="new_Response_new"></a>
+
+### new Response(platform, context, loggingPrefix)
+Response helper, with methods to configure and return the plugin response
+
+
+| Param | Type | Description |
+| --- | --- | --- |
+| platform | [<code>Platform</code>](#Platform) | Envoy platform instance |
+| context | <code>\*</code> | AWS Lambda context object |
+| loggingPrefix | <code>string</code> | add a prefix to the response log lines) |
+
+<a name="Response+jobUpdate"></a>
+
+### response.jobUpdate(status, data)
+Sets the job status to "in_progress" and updates status message.
+The lambda function is completed only if the `data` parameter is given.
+* works only if called in a job, or route with a job context
+
+**Kind**: instance method of [<code>Response</code>](#Response)  
+
+| Param | Type | Default | Description |
+| --- | --- | --- | --- |
+| status | <code>string</code> |  | Status message |
+| data | <code>\*</code> | <code></code> | Any detailed data object to assist debugging. |
+
+**Example**  
+```js
+// from route
+res.jobUpdate('Queued')
+res.json({ 'something': 'for external use' })
+// from worker
+res.jobUpdate('Queued', { 'some': 'debug object' })
+```
+<a name="Response+jobIgnore"></a>
+
+### response.jobIgnore(status, reason, data)
+Sets the job status to "ignored" and updates status message.
+The lambda function is completed only if the `data` parameter is given.
+* works only if called in a job, or route with a job context
+
+**Kind**: instance method of [<code>Response</code>](#Response)  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| status | <code>string</code> | Status message |
+| reason | <code>string</code> | Reason why the job is ignored |
+| data | <code>\*</code> | Any detailed data object to assist debugging. |
+
+**Example**  
+```js
+// from route
+res.jobIgnore('Not sent', 'user_not_found')
+res.json({ 'something': 'for external use' })
+
+// from worker
+res.jobIgnore('Not sent', 'user_not_found', { 'some': 'debug object' })
+```
+<a name="Response+jobComplete"></a>
+
+### response.jobComplete(status, data)
+Sets the job status to "done" and updates status message.
+The lambda function is completed only if the `data` parameter is given.
+* works only if called in a job, or route with a job context
+
+**Kind**: instance method of [<code>Response</code>](#Response)  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| status | <code>string</code> | Status message |
+| data | <code>\*</code> | Any detailed data object to assist debugging. |
+
+**Example**  
+```js
+// from route
+res.jobComplete('Sent')
+res.json({ 'something': 'for external use' })
+
+// from worker
+res.jobComplete('Sent', { 'some': 'debug object' })
+```
+<a name="Response+jobFail"></a>
+
+### response.jobFail(status, data)
+Sets the job status to "failed" and updates status message.
+The lambda function is completed only if the `data` parameter is given.
+* works only if called in a job, or route with a job context
+
+**Kind**: instance method of [<code>Response</code>](#Response)  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| status | <code>string</code> | Status message |
+| data | <code>\*</code> | Any detailed data object to assist debugging. |
+
+**Example**  
+```js
+// from route
+res.jobFail('Queued')
+res.json({ 'something': 'for external use' })
+
+// from worker
+res.jobFail('Queued', { 'some': 'debug object' })
+```
+<a name="Response+pluginFail"></a>
+
+### response.pluginFail(status, data)
+Sets the job status to "failed", updates status message and *disables* the plugin.
+The behaviour is intended for cases where a plugin is in an unrecoverable state.
+The lambda function is completed only if the `data` parameter is given.
+* works only if called in a job, or route with a job context
+
+**Kind**: instance method of [<code>Response</code>](#Response)  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| status | <code>string</code> | Status message |
+| data | <code>\*</code> | Any detailed data object to assist debugging. |
+
+**Example**  
+```js
+// from route
+res.pluginFail('Not sent', 'unauthorized')
+res.json({ 'something': 'for external use' })
+
+// from worker
+res.pluginFail('Not sent', 'unauthorized', { 'some': 'debug object' })
+```
+<a name="Response+jobAttach"></a>
+
+### response.jobAttach(...attachments)
+Associates response attachments to a job. This information is visible to the user according to a given format.
+* works only if called in a job, or route with a job context
+
+**Kind**: instance method of [<code>Response</code>](#Response)  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| ...attachments | [<code>JobAttachment</code>](#JobAttachment) | Attachments to associate with a job |
+
+**Example**  
+```js
+res.jobAttach({
+ type: 'link',
+ label: 'NDA',
+ value: 'https://somendaurl'
+}, {
+ type: 'password',
+ label: 'WiFi password',
+ value: '123'
+})
+```
+<a name="Response+succeed"></a>
+
+### response.succeed(data)
+Returns a raw object to Envoy API.
+Generally used for routes that validate installation flow
+
+**Kind**: instance method of [<code>Response</code>](#Response)  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| data | <code>\*</code> | Object to send |
+
+**Example**  
+```js
+function (req, res) {
+ if (!req.body.mandatoryArgument) { return res.error('no') }
+ res.succeed(req.body)
+}
+```
+<a name="Response+raw"></a>
+
+### response.raw(text, status)
+Returns a raw text response.
+
+**Kind**: instance method of [<code>Response</code>](#Response)  
+
+| Param | Type | Default | Description |
+| --- | --- | --- | --- |
+| text | <code>string</code> |  | text to return |
+| status | <code>number</code> | <code></code> | http status code |
+
+**Example**  
+```js
+res.raw('hello')
+```
+<a name="Response+json"></a>
+
+### response.json(data, status)
+Returns a json response.
+
+**Kind**: instance method of [<code>Response</code>](#Response)  
+
+| Param | Type | Default | Description |
+| --- | --- | --- | --- |
+| data | <code>\*</code> |  | object to serialize |
+| status | <code>number</code> | <code></code> | http status code |
+
+**Example**  
+```js
+res.json({ ok: true })
+```
+<a name="Response+view"></a>
+
+### response.view(path, status)
+Returns a html response based on a view path.
+
+**Kind**: instance method of [<code>Response</code>](#Response)  
+
+| Param | Type | Default | Description |
+| --- | --- | --- | --- |
+| path | <code>string</code> |  | relative path to _./views_ plugin folder |
+| status | <code>number</code> | <code></code> | http status code |
+
+**Example**  
+```js
+res.view({ ok: true })
+```
+<a name="Response+html"></a>
+
+### response.html(html, status)
+Returns a html response.
+
+**Kind**: instance method of [<code>Response</code>](#Response)  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| html | <code>string</code> | html code |
+| status | <code>number</code> | http status code |
+
+**Example**  
+```js
+res.html('<html></html>')
+```
+<a name="Response+redirect"></a>
+
+### response.redirect(url)
+Redirects to a different endpoint
+
+**Kind**: instance method of [<code>Response</code>](#Response)  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| url | <code>string</code> | url to redirect to |
+
+**Example**  
+```js
+res.redirect('http://otherpage')
+```
+<a name="Response+error"></a>
+
+### response.error(error)
+Returns an error
+
+**Kind**: instance method of [<code>Response</code>](#Response)  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| error | <code>\*</code> | Error object. Doesn't necessarily have to be an _Error_ object. |
+
+**Example**  
+```js
+res.error({ message: 'Not authorized' })
+```
+<a name="Response+httpHeader"></a>
+
+### response.httpHeader(header, value)
+Sets custom http headers
+
+**Kind**: instance method of [<code>Response</code>](#Response)  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| header | <code>string</code> | header to modify |
+| value | <code>string</code> | header value to set |
+
+**Example**  
+```js
+res.httpHeader('Content-Type', 'application/xml')
+```
+<a name="Response+meta"></a>
+
+### response.meta(header, value)
+Sets custom response meta to Envoy API
+
+**Kind**: instance method of [<code>Response</code>](#Response)  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| header | <code>string</code> | meta to modify |
+| value | <code>\*</code> | value to set |
+
+**Example**  
+```js
+res.meta('set_env', { 'TOKEN': 'some::token::value' })
+```
+<a name="Response+_respond"></a>
+
+### response.\_respond()
+DEPRECATED; DO NOT USE. Use specialized methods instead.
+
+**Kind**: instance method of [<code>Response</code>](#Response)  
+<a name="JobAttachment"></a>
+
+## JobAttachment : <code>Object</code>
+**Kind**: global typedef  
+**Properties**
+
+| Name | Type | Description |
+| --- | --- | --- |
+| type | <code>&quot;username&quot;</code> \| <code>&quot;password&quot;</code> \| <code>&quot;link&quot;</code> | Attachment type |
+| label | <code>string</code> | Label to show in the interface |
+| value | <code>string</code> | Associated value |
 

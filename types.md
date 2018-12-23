@@ -3,6 +3,8 @@
 <dl>
 <dt><a href="#Platform">Platform</a></dt>
 <dd></dd>
+<dt><a href="#Email">Email</a></dt>
+<dd></dd>
 <dt><a href="#Request">Request</a></dt>
 <dd></dd>
 <dt><a href="#Response">Response</a></dt>
@@ -17,8 +19,11 @@
 <dt><a href="#Platform">Platform</a> : <code>Object</code></dt>
 <dd><p>Envoy platform instance for AWS lambda deployments</p>
 </dd>
-<dt><a href="#PlatformOpts">PlatformOpts</a></dt>
+<dt><a href="#PlatformOptions">PlatformOptions</a></dt>
 <dd></dd>
+<dt><a href="#Email">Email</a> : <code>Object</code></dt>
+<dd><p>Helper to send emails based on available metadata.</p>
+</dd>
 <dt><a href="#Request">Request</a> : <code>Object</code></dt>
 <dd><p>Request object associated with a certain event</p>
 </dd>
@@ -31,7 +36,7 @@
 <dt><a href="#JobAttachment">JobAttachment</a> : <code>Object</code></dt>
 <dd></dd>
 <dt><a href="#Sms">Sms</a> : <code>Object</code></dt>
-<dd><p>Helper to send sms, based on available metadata.</p>
+<dd><p>Helper to send sms based on available metadata.</p>
 </dd>
 </dl>
 
@@ -61,7 +66,7 @@ Envoy platform instance for AWS lambda deployments
 
 | Param | Type | Description |
 | --- | --- | --- |
-| config | [<code>PlatformOpts</code>](#PlatformOpts) | Configuration object |
+| config | [<code>PlatformOptions</code>](#PlatformOptions) | Configuration object |
 
 **Example**  
 ```js
@@ -222,6 +227,74 @@ Gets AWS Lambda compatible handler
 const EnvoyPlatform = require('envoy-platform-sdk')
 const platformInstance = new EnvoyPlatform()
 exports.handler = platformInstance.getHandler()
+```
+<a name="Email"></a>
+
+## Email
+**Kind**: global class  
+
+* [Email](#Email)
+    * [new Email(req)](#new_Email_new)
+    * [.send(targetEmail, fromAlias, subject, messageText, messageHtml)](#Email+send)
+    * [.sendToEntry(fromAlias, subject, messageText, messageHtml)](#Email+sendToEntry)
+
+<a name="new_Email_new"></a>
+
+### new Email(req)
+Helper to send emails based on available metadata.
+
+
+| Param | Type | Description |
+| --- | --- | --- |
+| req | [<code>Request</code>](#Request) | Request object to get metadata from |
+
+<a name="Email+send"></a>
+
+### email.send(targetEmail, fromAlias, subject, messageText, messageHtml)
+Sends email
+
+**Kind**: instance method of [<code>Email</code>](#Email)  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| targetEmail | <code>string</code> | Email address to send to |
+| fromAlias | <code>string</code> | Alias to display in email client |
+| subject | <code>string</code> | Email title |
+| messageText | <code>string</code> | Text-only version of the message |
+| messageHtml | <code>string</code> | Html version of the message |
+
+**Example**  
+```js
+await this.email.send(
+'john(a)doe.com',
+'Envoy <> ISE integration',
+'Greetings',
+'Hello',
+'<b>Hello</b>'
+)
+```
+<a name="Email+sendToEntry"></a>
+
+### email.sendToEntry(fromAlias, subject, messageText, messageHtml)
+Sends email to visitor
+
+**Kind**: instance method of [<code>Email</code>](#Email)  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| fromAlias | <code>string</code> | Alias to display in email client |
+| subject | <code>string</code> | Email title |
+| messageText | <code>string</code> | Text-only version of the message |
+| messageHtml | <code>string</code> | Html version of the message |
+
+**Example**  
+```js
+await this.email.sendToEntry(
+'Envoy <> ISE integration',
+'Greetings',
+'Hello',
+'<b>Hello</b>'
+)
 ```
 <a name="Request"></a>
 
@@ -581,7 +654,7 @@ DEPRECATED; DO NOT USE. Use specialized methods instead.
 <a name="new_Sms_new"></a>
 
 ### new Sms(req)
-Helper to send sms, based on available metadata.
+Helper to send sms based on available metadata.
 
 
 | Param | Type | Description |
@@ -644,7 +717,7 @@ Envoy platform instance for AWS lambda deployments
 | req | [<code>Request</code>](#Request) | Incoming request object |
 | res | [<code>Response</code>](#Response) | Outgoing response object |
 | sms | [<code>Sms</code>](#Sms) | Sms helper based on Twilio |
-| email | <code>Email</code> | Email helper based on Mandrill |
+| email | [<code>Email</code>](#Email) | Email helper based on Mandrill |
 
 
 * [Platform](#Platform) : <code>Object</code>
@@ -668,7 +741,7 @@ Envoy platform instance for AWS lambda deployments
 
 | Param | Type | Description |
 | --- | --- | --- |
-| config | [<code>PlatformOpts</code>](#PlatformOpts) | Configuration object |
+| config | [<code>PlatformOptions</code>](#PlatformOptions) | Configuration object |
 
 **Example**  
 ```js
@@ -830,9 +903,9 @@ const EnvoyPlatform = require('envoy-platform-sdk')
 const platformInstance = new EnvoyPlatform()
 exports.handler = platformInstance.getHandler()
 ```
-<a name="PlatformOpts"></a>
+<a name="PlatformOptions"></a>
 
-## PlatformOpts
+## PlatformOptions
 **Kind**: global typedef  
 **Properties**
 
@@ -841,6 +914,76 @@ exports.handler = platformInstance.getHandler()
 | baseDir | <code>string</code> | Base dir of the plugin |
 | baseUrl | <code>string</code> | Base url of Envoy API |
 
+<a name="Email"></a>
+
+## Email : <code>Object</code>
+Helper to send emails based on available metadata.
+
+**Kind**: global typedef  
+
+* [Email](#Email) : <code>Object</code>
+    * [new Email(req)](#new_Email_new)
+    * [.send(targetEmail, fromAlias, subject, messageText, messageHtml)](#Email+send)
+    * [.sendToEntry(fromAlias, subject, messageText, messageHtml)](#Email+sendToEntry)
+
+<a name="new_Email_new"></a>
+
+### new Email(req)
+Helper to send emails based on available metadata.
+
+
+| Param | Type | Description |
+| --- | --- | --- |
+| req | [<code>Request</code>](#Request) | Request object to get metadata from |
+
+<a name="Email+send"></a>
+
+### email.send(targetEmail, fromAlias, subject, messageText, messageHtml)
+Sends email
+
+**Kind**: instance method of [<code>Email</code>](#Email)  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| targetEmail | <code>string</code> | Email address to send to |
+| fromAlias | <code>string</code> | Alias to display in email client |
+| subject | <code>string</code> | Email title |
+| messageText | <code>string</code> | Text-only version of the message |
+| messageHtml | <code>string</code> | Html version of the message |
+
+**Example**  
+```js
+await this.email.send(
+'john(a)doe.com',
+'Envoy <> ISE integration',
+'Greetings',
+'Hello',
+'<b>Hello</b>'
+)
+```
+<a name="Email+sendToEntry"></a>
+
+### email.sendToEntry(fromAlias, subject, messageText, messageHtml)
+Sends email to visitor
+
+**Kind**: instance method of [<code>Email</code>](#Email)  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| fromAlias | <code>string</code> | Alias to display in email client |
+| subject | <code>string</code> | Email title |
+| messageText | <code>string</code> | Text-only version of the message |
+| messageHtml | <code>string</code> | Html version of the message |
+
+**Example**  
+```js
+await this.email.sendToEntry(
+'Envoy <> ISE integration',
+'Greetings',
+'Hello',
+'<b>Hello</b>'
+)
+```
 <a name="Request"></a>
 
 ## Request : <code>Object</code>
@@ -1210,7 +1353,7 @@ DEPRECATED; DO NOT USE. Use specialized methods instead.
 <a name="Sms"></a>
 
 ## Sms : <code>Object</code>
-Helper to send sms, based on available metadata.
+Helper to send sms based on available metadata.
 
 **Kind**: global typedef  
 
@@ -1224,7 +1367,7 @@ Helper to send sms, based on available metadata.
 <a name="new_Sms_new"></a>
 
 ### new Sms(req)
-Helper to send sms, based on available metadata.
+Helper to send sms based on available metadata.
 
 
 | Param | Type | Description |

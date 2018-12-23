@@ -5,7 +5,8 @@
   "main": "index.js",
   "private": true,
   "scripts": {
-    "test": "standard && nyc mocha test"
+    "test": "standard && nyc mocha -u bdd-lazy-var/getter -R dot test/**",
+    "generate-types-readme": "jsdoc2md -f index.js lib/request.js lib/response.js lib/sms.js lib/email.js lib/envoyApi.js > types.md"
   },
   "repository": {
     "type": "git",
@@ -21,9 +22,11 @@
     "invoke": "./bin/invoke"
   },
   "dependencies": {
+    "@bugsnag/js": "^5.0.2",
     "debug": "^3.1.0",
     "libphonenumber-js": "^1.0.7",
     "lodash.get": "^4.4.2",
+    "lodash.snakecase": "^4.1.1",
     "nodemailer": "^4.6.8",
     "nodemailer-mandrill-transport": "^1.2.0",
     "request": "^2.88.0",
@@ -34,8 +37,10 @@
     "urijs": "^1.18.0"
   },
   "devDependencies": {
+    "bdd-lazy-var": "^2.5.0",
     "chai": "^4.1.2",
     "dirty-chai": "^2.0.1",
+    "jsdoc-to-markdown": "^4.0.1",
     "mocha": "^5.2.0",
     "nock": "^9.3.2",
     "nyc": "^12.0.2",
@@ -52,7 +57,12 @@
       "after",
       "afterEach",
       "it",
-      "expect"
+      "expect",
+      "sharedExamplesFor",
+      "includeExamplesFor",
+      "itBehavesLike",
+      "get",
+      "def"
     ]
   }
 }

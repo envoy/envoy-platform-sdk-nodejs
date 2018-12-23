@@ -5,402 +5,349 @@ const sinon = require('sinon')
 const chai = require('chai')
 chai.use(dirtyChai)
 chai.use(sinonChai)
+const $ = get
+const _get = require('lodash.get')
 const expect = chai.expect
-let sandbox = null
 
 describe('index', function () {
   this.timeout(20e3)
   beforeEach(function () {
-    sandbox = sinon.createSandbox()
+    process.env.ENVOY_PLUGIN_KEY = 'skype'
   })
   afterEach(function () {
-    sandbox.restore()
+    delete process.env.ENVOY_PLUGIN_KEY
+    sinon.restore()
   })
+  def('EnvoyApi', () => sinon.stub().returns($.envoyApi))
+  def('envoyApi', () => ({ updateEventReport: sinon.stub().resolves() }))
+  def('sms', () => sinon.stub().returns({}))
+  def('email', () => sinon.stub().returns({}))
+  def('oauth2Routes', () => ({ connect: $.routeHandler, callback: $.routeHandler }))
+  def('bugsnagHelper', () => ({ reportError: sinon.spy() }))
+  /* eslint-disable standard/no-callback-literal */
+  def('loadHandlers', () => (path, cb) =>
+    cb('welcome', path.match(/route/) ? $.routeHandler : $.workerHandler))
+  /* eslint-enable standard/no-callback-literal */
+  def('Platform', () => proxyquire('../index.js', {
+    './lib/bugsnagHelper': $.bugsnagHelper,
+    './lib/oauth2Routes': $.oauth2Routes,
+    './lib/sms': $.sms,
+    './lib/email': $.email,
+    './lib/envoyApi': $.EnvoyApi,
+    './lib/utils': { loadHandlers: $.loadHandlers }
+  }))
+  def('platform', () => new $.Platform({ baseDir: '.' }))
+  def('context', () => ({
+    succeed: sinon.spy(),
+    fail: sinon.spy(),
+    awsRequestId: 'aws::id::test',
+    logStreamName: 'logstreamname'
+  }))
+  def('params', () => ({}))
+  def('job', () => ({ id: 'job::id' }))
+  def('workerEvent', () => ({
+    name: 'event',
+    request_meta: {
+      event: 'welcome',
+      job: $.job,
+      params: $.params
+    }
+  }))
+  def('routeName', () => 'welcome')
+  def('routeEvent', () => ({
+    name: 'route',
+    request_meta: {
+      route: $.routeName,
+      params: $.params
+    }
+  }))
+  def('event', () => $.routeEvent)
+  def('workerHandler', () => function (req, res) { res.job_complete('Sent', { payload: true }) })
+  def('routeHandler', () => function (req, res) { res.json({ welcome: true }) })
+  def('subject', () => async () => {
+    const handler = $.platform.getHandler()
+    const ret = handler($.event, $.context)
+    if (ret instanceof Promise) { await ret }
+  })
+  def('responsePayload', () =>
+    _get($.context.succeed, 'args[0][0]') ||
+    JSON.parse(_get($.context.fail, 'args[0][0]')))
+  def('responseBody', () => $.responsePayload.body)
+  def('responseMeta', () => $.responsePayload.meta)
+
+  sharedExamplesFor('finished lambda event', function () {
+    it('has a valid payload', async function () {
+      await $.subject()
+      expect($.responseMeta).to.exist()
+      expect($.responseBody).to.exist()
+    })
+  })
+  sharedExamplesFor('successful lambda event', function () {
+    it('completes successfuly', async function () {
+      await $.subject()
+      expect($.context.succeed).to.have.been.called()
+      expect($.context.fail).to.not.have.been.called()
+    })
+    itBehavesLike('finished lambda event')
+  })
+  sharedExamplesFor('failed lambda event', function () {
+    it('fails', async function () {
+      await $.subject()
+      expect($.context.succeed).to.not.have.been.called()
+      expect($.context.fail).to.have.been.called()
+    })
+    itBehavesLike('finished lambda event')
+  })
+  sharedExamplesFor('successful route', function () {
+    itBehavesLike('successful lambda event')
+    it('has helpers attached', async function () {
+      await $.subject()
+      expect($.platform.sms).to.exist()
+      expect($.platform.email).to.exist()
+    })
+  })
+  sharedExamplesFor('failed route', function () {
+    itBehavesLike('failed lambda event')
+  })
+  sharedExamplesFor('successful worker', function () {
+    itBehavesLike('successful lambda event')
+    it('returns meta', async function () {
+      await $.subject()
+      expect($.responseMeta).to.deep.include({
+        set_job_status: 'done'
+      })
+    })
+    it('returns payload', async function () {
+      await $.subject()
+      expect($.responseBody).to.exist()
+    })
+    it('has helpers attached', async function () {
+      await $.subject()
+      expect($.platform.sms).to.exist()
+      expect($.platform.email).to.exist()
+    })
+  })
+  sharedExamplesFor('failed worker', function () {
+    itBehavesLike('successful lambda event')
+    it('adds the failure metadata', async function () {
+      await $.subject()
+      expect($.responseMeta).to.deep.include({
+        set_job_status: 'failed'
+      })
+    })
+  })
+
   describe('route', function () {
-    it('should return json if there are no issues', function () {
-      let context = {
-        succeed: sinon.spy(),
-        fail: sinon.spy(),
-        awsRequestId: 'LAMBDA_INVOKE',
-        logStreamName: 'LAMBDA_INVOKE'
-      }
-      let routeEvent = { name: 'route', request_meta: { route: 'welcome' } }
-      let Sdk = proxyquire('../index', {})
-      let platformInstance = new Sdk({})
-      platformInstance.registerRoute('welcome', (req, res) => res.json(['yes']))
-      let handler = platformInstance.getHandler()
-      handler(routeEvent, context)
-      expect(context.fail).to.not.have.been.called()
-      expect(context.succeed).to.have.been.called()
-      let res = context.succeed.args[0][0]
-      expect(res.body).to.deep.equal({ json: ['yes'] })
-    })
-    it('should send sms to entry if there are no issues', async function () {
-      let context = {
-        succeed: sinon.spy(),
-        fail: sinon.spy(),
-        awsRequestId: 'LAMBDA_INVOKE',
-        logStreamName: 'LAMBDA_INVOKE'
-      }
-      let twilioSendSpy = sinon.spy()
-      let routeEvent = { name: 'route', request_meta: { route: 'welcome' } }
-      let Sdk = proxyquire('../index', {
-        './lib/sms': proxyquire('../lib/sms', {
-          './twilioHelper': {
-            send: async function () {
-              twilioSendSpy(...arguments)
-            }
-          }
-        })
-      })
-      let platformInstance = new Sdk({})
-      platformInstance.registerRoute('welcome', async function (req, res) {
-        await this.sms.sendToEntry('hello')
-        res.json(['yes'])
-      })
-      let handler = platformInstance.getHandler()
-      await handler(routeEvent, context)
-      expect(context.fail).to.not.have.been.called()
-      expect(context.succeed).to.have.been.called()
-      let res = context.succeed.args[0][0]
-      expect(res.body).to.deep.equal({ json: ['yes'] })
-      expect(twilioSendSpy).to.have.been.called()
-      expect(twilioSendSpy.args[0][1]).to.deep.equal({ message: 'hello' })
-    })
-    it('should return json if there are no issues', function () {
-      let context = {
-        succeed: sinon.spy(),
-        fail: sinon.spy(),
-        awsRequestId: 'LAMBDA_INVOKE',
-        logStreamName: 'LAMBDA_INVOKE'
-      }
-      let routeEvent = { name: 'route', request_meta: { route: 'welcome' } }
-      let Sdk = proxyquire('../index', {})
-      let platformInstance = new Sdk({})
-      platformInstance.registerRoute('welcome', (req, res) => res.json(['yes']))
-      let handler = platformInstance.getHandler()
-      handler(routeEvent, context)
-      expect(context.fail).to.not.have.been.called()
-      expect(context.succeed).to.have.been.called()
-      let res = context.succeed.args[0][0]
-      expect(res.body).to.deep.equal({ json: ['yes'] })
-    })
-    it('should update event report when necessary', async function () {
-      let context = {
-        succeed: sinon.spy(),
-        fail: sinon.spy(),
-        awsRequestId: 'LAMBDA_INVOKE',
-        logStreamName: 'LAMBDA_INVOKE'
-      }
-      let putSpy = sinon.spy()
-      let routeEvent = {
-        name: 'route',
-        request_meta: {
-          route: 'welcome',
-          params: {
-            event_report_id: 'eid'
-          }
-        }
-      }
-      let Sdk = proxyquire('../index', {
-        'request-promise-native': {
-          put: async function () {
-            putSpy(...arguments)
-          }
-        }
-      })
-      let platformInstance = new Sdk({ })
-      platformInstance.registerRoute('welcome', async function (req, res) {
-        await this.eventComplete('Sent')
-        res.json(['yes'])
-      })
-      let handler = platformInstance.getHandler()
-      await handler(routeEvent, context)
-      expect(context.fail).to.not.have.been.called()
-      expect(context.succeed).to.have.been.called()
-      let res = context.succeed.args[0][0]
-      expect(res.body).to.deep.equal({ json: ['yes'] })
-      expect(putSpy).to.have.been.called()
-      expect(putSpy.args[0][0]).to.equal('https://app.envoy.com/a/hub/v1/event_reports/eid')
-      expect(putSpy.args[0][1]).to.deep.equal({
-        json: true,
-        body: {
-          status: 'done',
-          status_message: 'Sent',
-          failure_reason: null
-        }
+    def('event', () => $.routeEvent)
+    itBehavesLike('successful route')
+    it('returns payload', async function () {
+      await $.subject()
+      expect($.responseBody).to.deep.equal({
+        json: { welcome: true }
       })
     })
-    it('should send email to entry if there are no issues', async function () {
-      let context = {
-        succeed: sinon.spy(),
-        fail: sinon.spy(),
-        awsRequestId: 'LAMBDA_INVOKE',
-        logStreamName: 'LAMBDA_INVOKE'
-      }
-      process.env.MANDRILL_API_KEY = 'apikey'
-      let mandrilSpy = sinon.spy()
-      let createTransportSpy = sinon.spy()
-      let sendMailSpy = sinon.spy()
-      let routeEvent = { name: 'route', request_meta: { route: 'welcome' } }
-      let Sdk = proxyquire('../index', {
-        './lib/email': proxyquire('../lib/email', {
-          'nodemailer': {
-            createTransport () {
-              createTransportSpy(...arguments)
-              return {
-                sendMail: function (opts, cb) {
-                  sendMailSpy(...arguments)
-                  cb(null, 'ok')
-                }
-              }
-            }
-          },
-          'nodemailer-mandrill-transport': mandrilSpy
-        })
-      })
-      let platformInstance = new Sdk({})
-      platformInstance.registerRoute('welcome', async function (req, res) {
-        await this.email.send('x@gmail.com', 'alias', 'hello1', 'hello2', 'hello3')
-        res.json(['yes'])
-      })
-      let handler = platformInstance.getHandler()
-      await handler(routeEvent, context)
-      expect(context.fail).to.not.have.been.called()
-      expect(context.succeed).to.have.been.called()
-      let res = context.succeed.args[0][0]
-      expect(res.body).to.deep.equal({ json: ['yes'] })
-      expect(mandrilSpy).to.have.been.calledWith({ auth: { apiKey: 'apikey' } })
-      expect(createTransportSpy).to.have.been.called()
-      expect(sendMailSpy).to.have.been.calledWith({
-        from: 'alias <no-reply@envoy.com>',
-        html: 'hello3',
-        subject: 'hello1',
-        text: 'hello2',
-        to: 'x@gmail.com'
+    context('invalid handler', function () {
+      def('routeHandler', () => 'not a function')
+      itBehavesLike('failed route')
+    })
+    context('invalid event', function () {
+      def('routeEvent', () => ({ name: 'aa', request_meta: {} }))
+      itBehavesLike('failed route')
+    })
+    context('unhandled error', function () {
+      def('routeHandler', () => () => { throw new Error('no') })
+      itBehavesLike('failed route')
+      context('async', function () {
+        def('routeHandler', () => async () => { throw new Error('no') })
+        itBehavesLike('failed route')
       })
     })
-    it('should call .error in case of unhandled synchronous error', function () {
-      let context = {
-        succeed: sinon.spy(),
-        fail: sinon.spy(),
-        awsRequestId: 'LAMBDA_INVOKE',
-        logStreamName: 'LAMBDA_INVOKE'
-      }
-      let routeEvent = { name: 'route', request_meta: { route: 'welcome' } }
-      let Sdk = proxyquire('../index', {})
-      let platformInstance = new Sdk({})
-      platformInstance.registerRoute('welcome', (req, res) => { throw new Error('no') })
-      let handler = platformInstance.getHandler()
-      handler(routeEvent, context)
-      expect(context.fail).to.have.been.called()
-      let failString = context.fail.args[0][0]
-      let res = JSON.parse(failString)
-      expect(res.meta.status).to.equal(500)
-      expect(res.body.message).to.equal('no')
-    })
-    it('should call .error in case of unhandled asynchronous promise error', function (done) {
-      let context = {
-        succeed: sinon.spy(),
-        fail: sinon.spy(),
-        awsRequestId: 'LAMBDA_INVOKE',
-        logStreamName: 'LAMBDA_INVOKE'
-      }
-      let routeEvent = { name: 'route', request_meta: { route: 'welcome' } }
-      let Sdk = proxyquire('../index', {})
-      let platformInstance = new Sdk({})
-      platformInstance.registerRoute('welcome', (req, res) => { return Promise.reject(new Error('no')) })
-      let handler = platformInstance.getHandler()
-      handler(routeEvent, context)
-      setTimeout(() => {
-        try {
-          expect(context.fail).to.have.been.called()
-          let failString = context.fail.args[0][0]
-          let res = JSON.parse(failString)
-          expect(res.meta.status).to.equal(500)
-          expect(res.body.message).to.equal('no')
-          done()
-        } catch (e) {
-          done(e)
-        }
-      }, 500)
+    context('oauth', function () {
+      context('connect', function () {
+        def('routeName', () => 'oauth/connect')
+        itBehavesLike('successful route')
+      })
+      context('callback', function () {
+        def('routeName', () => 'oauth/callback')
+        itBehavesLike('successful route')
+      })
     })
   })
+
   describe('worker', function () {
-    it('worker should add attachments on job_success', function () {
-      let context = {
-        succeed: sinon.spy(),
-        fail: sinon.spy(),
-        awsRequestId: 'LAMBDA_INVOKE',
-        logStreamName: 'LAMBDA_INVOKE'
-      }
-      let workerEvent = { name: 'event', request_meta: { event: 'welcome' } }
-      let Sdk = proxyquire('../index', {})
-      let platformInstance = new Sdk({})
-      platformInstance.registerWorker('welcome', function (req, res) {
-        res.job_attach({
-          type: 'link',
-          label: 'NDA',
-          value: 'some dropbox url'
+    def('event', () => $.workerEvent)
+    itBehavesLike('successful worker')
+    it('returns meta', async function () {
+      await $.subject()
+      expect($.responseMeta).to.deep.include({
+        set_job_status_message: 'Sent'
+      })
+    })
+    it('returns payload', async function () {
+      await $.subject()
+      expect($.responseBody).to.deep.equal({
+        payload: true
+      })
+    })
+    context('invalid handler', function () {
+      def('workerHandler', () => 'not a function')
+      itBehavesLike('failed worker')
+      it('adds status message', async function () {
+        await $.subject()
+        expect($.responseMeta).to.deep.include({
+          set_job_status_message: 'Failed'
         })
-        res.job_attach({
-          type: 'link',
-          label: 'NDA2',
-          value: 'some dropbox url'
-        }, {
-          type: 'link',
-          label: 'NDA3',
-          value: 'some dropbox url'
+      })
+    })
+  })
+
+  describe('event helpers', function () {
+    def('event', () => $.workerEvent)
+    def('url', () => sinon.spy())
+    describe('getRouteLink', function () {
+      def('workerHandler', () => async function (req, res) {
+        $.url(this.getRouteLink('/url'))
+        res.job_complete('Ok', {})
+      })
+      itBehavesLike('successful worker')
+      it('should return route link', async function () {
+        await $.subject()
+        expect($.url).to.have.been.calledWith(
+          'https://app.envoy.com/platform/skype/url')
+      })
+      context('undefined plugin key', function () {
+        beforeEach(function () {
+          delete process.env.ENVOY_PLUGIN_KEY
         })
-        res.job_complete('Uploaded NDA', {})
+        itBehavesLike('failed worker')
+        it('fails', async function () {
+          await $.subject()
+          expect($.responseMeta).to.deep.include({
+            set_job_failure_message: 'No plugin key'
+          })
+        })
       })
-      let handler = platformInstance.getHandler()
-      handler(workerEvent, context)
-      expect(context.succeed).to.have.been.called()
-      let args = context.succeed.args[0][0]
-      expect(args.meta.set_job_status).to.equal('done')
-      expect(args.meta.set_job_status_message).to.equal('Uploaded NDA')
-      expect(JSON.parse(args.meta.set_job_attachments)).to.deep.equal([{
-        type: 'link',
-        label: 'NDA',
-        value: 'some dropbox url'
-      }, {
-        type: 'link',
-        label: 'NDA2',
-        value: 'some dropbox url'
-      }, {
-        type: 'link',
-        label: 'NDA3',
-        value: 'some dropbox url'
-      }])
-      expect(args.body).to.deep.equal({})
     })
-    it('worker calls job_failed when `plugin_failed` is called, and sets plugin status to failed', function () {
-      let context = {
-        succeed: sinon.spy(),
-        fail: sinon.spy(),
-        awsRequestId: 'LAMBDA_INVOKE',
-        logStreamName: 'LAMBDA_INVOKE'
-      }
-      let workerEvent = { name: 'event', request_meta: { event: 'welcome' } }
-      let Sdk = proxyquire('../index', {})
-      let platformInstance = new Sdk({})
-      platformInstance.registerWorker('welcome', (req, res) => {
-        res.plugin_fail('Authentication failed', 'Reauthentication required', {})
+    describe('getJobLink', function () {
+      def('workerHandler', () => async function (req, res) {
+        $.url(this.getJobLink('/url'))
+        res.job_complete('Ok', {})
       })
-      let handler = platformInstance.getHandler()
-      handler(workerEvent, context)
-      expect(context.succeed).to.have.been.called()
-      let args = context.succeed.args[0][0]
-      expect(args.meta.set_install_status).to.equal('failed')
-      expect(args.meta.set_job_status).to.equal('failed')
-      expect(args.meta.set_job_status_message).to.equal('Authentication failed')
-      expect(args.meta.set_job_failure_message).to.equal('Reauthentication required')
-      expect(args.body).to.deep.equal({})
-    })
-    it('worker should call .job_failed in case of unhandled synchronous error', function () {
-      let context = {
-        succeed: sinon.spy(),
-        fail: sinon.spy(),
-        awsRequestId: 'LAMBDA_INVOKE',
-        logStreamName: 'LAMBDA_INVOKE'
-      }
-      let workerEvent = { name: 'event', request_meta: { event: 'welcome' } }
-      let Sdk = proxyquire('../index', {})
-      let platformInstance = new Sdk({})
-      platformInstance.registerWorker('welcome', (req, res) => { throw new Error('no') })
-      let handler = platformInstance.getHandler()
-      handler(workerEvent, context)
-      expect(context.succeed).to.have.been.called()
-      let args = context.succeed.args[0][0]
-      expect(args.meta.set_job_status).to.equal('failed')
-      expect(args.meta.set_job_status_message).to.equal('Failed')
-      expect(args.meta.set_job_failure_message).to.equal('no')
-      expect(args.body.message).to.equal('no')
-    })
-    it('job should call .job_failed in case of unhandled asynchronous promise error', function (done) {
-      let context = {
-        succeed: sinon.spy(),
-        fail: sinon.spy(),
-        job_failed: sinon.spy(),
-        awsRequestId: 'LAMBDA_INVOKE',
-        logStreamName: 'LAMBDA_INVOKE'
-      }
-      let routeEvent = { name: 'route', request_meta: { route: 'welcome', job: { id: 1 } } }
-      let Sdk = proxyquire('../index', {})
-      let platformInstance = new Sdk({})
-      platformInstance.registerRoute('welcome', (req, res) => { return Promise.reject(new Error('no')) })
-      let handler = platformInstance.getHandler()
-      handler(routeEvent, context)
-      setTimeout(() => {
-        try {
-          expect(context.succeed).to.have.been.called()
-          let args = context.succeed.args[0][0]
-          expect(args.meta.set_job_status).to.equal('failed')
-          expect(args.meta.set_job_status_message).to.equal('Failed')
-          expect(args.meta.set_job_failure_message).to.equal('no')
-          expect(args.body.message).to.equal('no')
-          done()
-        } catch (e) {
-          done(e)
-        }
-      }, 500)
-    })
-    it('creates correct job links', function () {
-      process.env.ENVOY_PLUGIN_KEY = 'pk'
-      let context = {
-        succeed: sinon.spy(),
-        fail: sinon.spy(),
-        awsRequestId: 'LAMBDA_INVOKE',
-        logStreamName: 'LAMBDA_INVOKE'
-      }
-      let workerEvent = {
-        name: 'event',
-        request_meta: {
-          event: 'welcome',
-          job: {
-            id: 'jid'
-          }
-        }
-      }
-      let Sdk = proxyquire('../index', {})
-      let platformInstance = new Sdk({})
-      let route
-      platformInstance.registerWorker('welcome', function (req, res) {
-        route = this.getJobLink('welcome2')
-        res.job_complete('Complete', {})
+      itBehavesLike('successful worker')
+      it('should return route link', async function () {
+        await $.subject()
+        expect($.url).to.have.been.calledWith(
+          'https://app.envoy.com/platform/skype/url?_juuid=job%3A%3Aid')
       })
-      let handler = platformInstance.getHandler()
-      handler(workerEvent, context)
-      expect(context.succeed).to.have.been.called()
-      expect(route).to.equal('https://app.envoy.com/platform/pk/welcome2?_juuid=jid')
-    })
-    it('creates correct event report links', function () {
-      process.env.ENVOY_PLUGIN_KEY = 'pk'
-      let context = {
-        succeed: sinon.spy(),
-        fail: sinon.spy(),
-        awsRequestId: 'LAMBDA_INVOKE',
-        logStreamName: 'LAMBDA_INVOKE'
-      }
-      let workerEvent = {
-        name: 'event',
-        request_meta: {
-          event: 'welcome',
-          event_report_id: 'eid'
-        }
-      }
-      let Sdk = proxyquire('../index', {})
-      let platformInstance = new Sdk({})
-      let route
-      platformInstance.registerWorker('welcome', function (req, res) {
-        route = this.getEventReportLink('welcome2', { something: 'else' })
-        res.job_complete('Complete', {})
+      context('with no job id', function () {
+        def('job', () => null)
+        itBehavesLike('failed worker')
+        it('fails', async function () {
+          await $.subject()
+          expect($.responseMeta).to.deep.include({
+            set_job_failure_message: 'No job associated with this request'
+          })
+        })
       })
-      let handler = platformInstance.getHandler()
-      handler(workerEvent, context)
-      expect(context.succeed).to.have.been.called()
-      expect(route).to.equal('https://app.envoy.com/platform/pk/welcome2?something=else&event_report_id=eid')
+    })
+  })
+
+  describe('hub event helpers', function () {
+    def('params', () => ({
+      ...$.params,
+      event_report_id: 'hub::event::id'
+    }))
+
+    sharedExamplesFor('updates hub event report', function () {
+      it('updates hub event report', async function () {
+        await $.subject()
+        expect($.envoyApi.updateEventReport).to.have.been.calledWith(
+          $.expectedEventReport.id,
+          $.expectedEventReport.summary,
+          $.expectedEventReport.status,
+          $.expectedEventReport.failureReason
+        )
+      })
+    })
+
+    describe('eventUpdate', function () {
+      def('routeHandler', () => async function (req, res) {
+        await this.eventUpdate('Sent')
+        res.json({ welcome: true })
+      })
+      itBehavesLike('successful route')
+      itBehavesLike('updates hub event report')
+      def('expectedEventReport', () => ({
+        id: 'hub::event::id',
+        status: 'in_progress',
+        summary: 'Sent',
+        failureReason: null
+      }))
+    })
+    describe('eventComplete', function () {
+      def('routeHandler', () => async function (req, res) {
+        await this.eventComplete('Sent')
+        res.json({ welcome: true })
+      })
+      itBehavesLike('successful route')
+      itBehavesLike('updates hub event report')
+      def('expectedEventReport', () => ({
+        id: 'hub::event::id',
+        status: 'done',
+        summary: 'Sent',
+        failureReason: null
+      }))
+    })
+    describe('eventIgnore', function () {
+      def('routeHandler', () => async function (req, res) {
+        await this.eventIgnore('Not Sent', 'User not found')
+        res.json({ welcome: true })
+      })
+      itBehavesLike('successful route')
+      itBehavesLike('updates hub event report')
+      def('expectedEventReport', () => ({
+        id: 'hub::event::id',
+        status: 'ignored',
+        summary: 'Not Sent',
+        failureReason: 'User not found'
+      }))
+    })
+    describe('eventFail', function () {
+      def('routeHandler', () => async function (req, res) {
+        await this.eventFail('Not Sent', 'Not enough credit')
+        res.json({ welcome: true })
+      })
+      itBehavesLike('successful route')
+      itBehavesLike('updates hub event report')
+      def('expectedEventReport', () => ({
+        id: 'hub::event::id',
+        status: 'failed',
+        summary: 'Not Sent',
+        failureReason: 'Not enough credit'
+      }))
+    })
+    describe('getEventReportLink', function () {
+      def('routeHandler', () => async function (req, res) {
+        res.json({ url: this.getEventReportLink('/url') })
+      })
+      itBehavesLike('successful route')
+      it('should return route link', async function () {
+        await $.subject()
+        expect($.responseBody.json.url).to.equal(
+          'https://app.envoy.com/platform/skype/url?event_report_id=hub%3A%3Aevent%3A%3Aid')
+      })
+      context('no event id', function () {
+        def('params', () => ({
+          ...$.params,
+          event_report_id: null
+        }))
+        itBehavesLike('failed route')
+        it('fails', async function () {
+          await $.subject()
+          expect($.responseBody.message).to.equal(
+            'No hub event associated with this request')
+        })
+      })
     })
   })
 })

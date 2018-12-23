@@ -3,13 +3,15 @@
 <dl>
 <dt><a href="#Platform">Platform</a></dt>
 <dd></dd>
-<dt><a href="#Email">Email</a></dt>
-<dd></dd>
 <dt><a href="#Request">Request</a></dt>
 <dd></dd>
 <dt><a href="#Response">Response</a></dt>
 <dd></dd>
 <dt><a href="#Sms">Sms</a></dt>
+<dd></dd>
+<dt><a href="#Email">Email</a></dt>
+<dd></dd>
+<dt><a href="#EnvoyApi">EnvoyApi</a></dt>
 <dd></dd>
 </dl>
 
@@ -21,9 +23,6 @@
 </dd>
 <dt><a href="#PlatformOptions">PlatformOptions</a></dt>
 <dd></dd>
-<dt><a href="#Email">Email</a> : <code>Object</code></dt>
-<dd><p>Helper to send emails based on available metadata.</p>
-</dd>
 <dt><a href="#Request">Request</a> : <code>Object</code></dt>
 <dd><p>Request object associated with a certain event</p>
 </dd>
@@ -37,6 +36,12 @@
 <dd></dd>
 <dt><a href="#Sms">Sms</a> : <code>Object</code></dt>
 <dd><p>Helper to send sms based on available metadata.</p>
+</dd>
+<dt><a href="#Email">Email</a> : <code>Object</code></dt>
+<dd><p>Helper to send emails based on available metadata.</p>
+</dd>
+<dt><a href="#EnvoyApi">EnvoyApi</a> : <code>Object</code></dt>
+<dd><p>Helper to make envoy api calls based on request metadata.</p>
 </dd>
 </dl>
 
@@ -227,74 +232,6 @@ Gets AWS Lambda compatible handler
 const EnvoyPlatform = require('envoy-platform-sdk')
 const platformInstance = new EnvoyPlatform()
 exports.handler = platformInstance.getHandler()
-```
-<a name="Email"></a>
-
-## Email
-**Kind**: global class  
-
-* [Email](#Email)
-    * [new Email(req)](#new_Email_new)
-    * [.send(targetEmail, fromAlias, subject, messageText, messageHtml)](#Email+send)
-    * [.sendToEntry(fromAlias, subject, messageText, messageHtml)](#Email+sendToEntry)
-
-<a name="new_Email_new"></a>
-
-### new Email(req)
-Helper to send emails based on available metadata.
-
-
-| Param | Type | Description |
-| --- | --- | --- |
-| req | [<code>Request</code>](#Request) | Request object to get metadata from |
-
-<a name="Email+send"></a>
-
-### email.send(targetEmail, fromAlias, subject, messageText, messageHtml)
-Sends email
-
-**Kind**: instance method of [<code>Email</code>](#Email)  
-
-| Param | Type | Description |
-| --- | --- | --- |
-| targetEmail | <code>string</code> | Email address to send to |
-| fromAlias | <code>string</code> | Alias to display in email client |
-| subject | <code>string</code> | Email title |
-| messageText | <code>string</code> | Text-only version of the message |
-| messageHtml | <code>string</code> | Html version of the message |
-
-**Example**  
-```js
-await this.email.send(
-'john(a)doe.com',
-'Envoy <> ISE integration',
-'Greetings',
-'Hello',
-'<b>Hello</b>'
-)
-```
-<a name="Email+sendToEntry"></a>
-
-### email.sendToEntry(fromAlias, subject, messageText, messageHtml)
-Sends email to visitor
-
-**Kind**: instance method of [<code>Email</code>](#Email)  
-
-| Param | Type | Description |
-| --- | --- | --- |
-| fromAlias | <code>string</code> | Alias to display in email client |
-| subject | <code>string</code> | Email title |
-| messageText | <code>string</code> | Text-only version of the message |
-| messageHtml | <code>string</code> | Html version of the message |
-
-**Example**  
-```js
-await this.email.sendToEntry(
-'Envoy <> ISE integration',
-'Greetings',
-'Hello',
-'<b>Hello</b>'
-)
 ```
 <a name="Request"></a>
 
@@ -704,6 +641,112 @@ Gets visitor's phone number in international format.
 
 **Kind**: instance method of [<code>Sms</code>](#Sms)  
 **Returns**: <code>string</code> - Phone number in international format  
+<a name="Email"></a>
+
+## Email
+**Kind**: global class  
+
+* [Email](#Email)
+    * [new Email(req)](#new_Email_new)
+    * [.send(targetEmail, fromAlias, subject, messageText, messageHtml)](#Email+send)
+    * [.sendToEntry(fromAlias, subject, messageText, messageHtml)](#Email+sendToEntry)
+
+<a name="new_Email_new"></a>
+
+### new Email(req)
+Helper to send emails based on available metadata.
+
+
+| Param | Type | Description |
+| --- | --- | --- |
+| req | [<code>Request</code>](#Request) | Request object to get metadata from |
+
+<a name="Email+send"></a>
+
+### email.send(targetEmail, fromAlias, subject, messageText, messageHtml)
+Sends email
+
+**Kind**: instance method of [<code>Email</code>](#Email)  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| targetEmail | <code>string</code> | Email address to send to |
+| fromAlias | <code>string</code> | Alias to display in email client |
+| subject | <code>string</code> | Email title |
+| messageText | <code>string</code> | Text-only version of the message |
+| messageHtml | <code>string</code> | Html version of the message |
+
+**Example**  
+```js
+await this.email.send(
+'john(a)doe.com',
+'Envoy <> ISE integration',
+'Greetings',
+'Hello',
+'<b>Hello</b>'
+)
+```
+<a name="Email+sendToEntry"></a>
+
+### email.sendToEntry(fromAlias, subject, messageText, messageHtml)
+Sends email to visitor
+
+**Kind**: instance method of [<code>Email</code>](#Email)  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| fromAlias | <code>string</code> | Alias to display in email client |
+| subject | <code>string</code> | Email title |
+| messageText | <code>string</code> | Text-only version of the message |
+| messageHtml | <code>string</code> | Html version of the message |
+
+**Example**  
+```js
+await this.email.sendToEntry(
+'Envoy <> ISE integration',
+'Greetings',
+'Hello',
+'<b>Hello</b>'
+)
+```
+<a name="EnvoyApi"></a>
+
+## EnvoyApi
+**Kind**: global class  
+**Properties**
+
+| Name | Type | Description |
+| --- | --- | --- |
+| baseUrl | <code>string</code> | base url to make the api calls from |
+
+
+* [EnvoyApi](#EnvoyApi)
+    * [new EnvoyApi()](#new_EnvoyApi_new)
+    * [.updateEventReport()](#EnvoyApi+updateEventReport)
+
+<a name="new_EnvoyApi_new"></a>
+
+### new EnvoyApi()
+Helper to make envoy api calls based on request metadata.
+
+<a name="EnvoyApi+updateEventReport"></a>
+
+### envoyApi.updateEventReport()
+Updates event status of a hub event. Useful for updating hub event status from a route.
+
+**Kind**: instance method of [<code>EnvoyApi</code>](#EnvoyApi)  
+**Properties**
+
+| Name | Type | Description |
+| --- | --- | --- |
+| eventReportId | <code>string</code> | hub event id |
+| statusSummary | <code>string</code> | readable status message of the event |
+| eventStatus | <code>&quot;in\_progress&quot;</code> \| <code>&quot;failed&quot;</code> \| <code>&quot;done&quot;</code> \| <code>&quot;ignored&quot;</code> | database friendly status |
+
+**Example**  
+```js
+await this.envoyApi.updateEventReport('11:22:33', 'Queued')
+```
 <a name="Platform"></a>
 
 ## Platform : <code>Object</code>
@@ -914,76 +957,6 @@ exports.handler = platformInstance.getHandler()
 | baseDir | <code>string</code> | Base dir of the plugin |
 | baseUrl | <code>string</code> | Base url of Envoy API |
 
-<a name="Email"></a>
-
-## Email : <code>Object</code>
-Helper to send emails based on available metadata.
-
-**Kind**: global typedef  
-
-* [Email](#Email) : <code>Object</code>
-    * [new Email(req)](#new_Email_new)
-    * [.send(targetEmail, fromAlias, subject, messageText, messageHtml)](#Email+send)
-    * [.sendToEntry(fromAlias, subject, messageText, messageHtml)](#Email+sendToEntry)
-
-<a name="new_Email_new"></a>
-
-### new Email(req)
-Helper to send emails based on available metadata.
-
-
-| Param | Type | Description |
-| --- | --- | --- |
-| req | [<code>Request</code>](#Request) | Request object to get metadata from |
-
-<a name="Email+send"></a>
-
-### email.send(targetEmail, fromAlias, subject, messageText, messageHtml)
-Sends email
-
-**Kind**: instance method of [<code>Email</code>](#Email)  
-
-| Param | Type | Description |
-| --- | --- | --- |
-| targetEmail | <code>string</code> | Email address to send to |
-| fromAlias | <code>string</code> | Alias to display in email client |
-| subject | <code>string</code> | Email title |
-| messageText | <code>string</code> | Text-only version of the message |
-| messageHtml | <code>string</code> | Html version of the message |
-
-**Example**  
-```js
-await this.email.send(
-'john(a)doe.com',
-'Envoy <> ISE integration',
-'Greetings',
-'Hello',
-'<b>Hello</b>'
-)
-```
-<a name="Email+sendToEntry"></a>
-
-### email.sendToEntry(fromAlias, subject, messageText, messageHtml)
-Sends email to visitor
-
-**Kind**: instance method of [<code>Email</code>](#Email)  
-
-| Param | Type | Description |
-| --- | --- | --- |
-| fromAlias | <code>string</code> | Alias to display in email client |
-| subject | <code>string</code> | Email title |
-| messageText | <code>string</code> | Text-only version of the message |
-| messageHtml | <code>string</code> | Html version of the message |
-
-**Example**  
-```js
-await this.email.sendToEntry(
-'Envoy <> ISE integration',
-'Greetings',
-'Hello',
-'<b>Hello</b>'
-)
-```
 <a name="Request"></a>
 
 ## Request : <code>Object</code>
@@ -1417,3 +1390,107 @@ Gets visitor's phone number in international format.
 
 **Kind**: instance method of [<code>Sms</code>](#Sms)  
 **Returns**: <code>string</code> - Phone number in international format  
+<a name="Email"></a>
+
+## Email : <code>Object</code>
+Helper to send emails based on available metadata.
+
+**Kind**: global typedef  
+
+* [Email](#Email) : <code>Object</code>
+    * [new Email(req)](#new_Email_new)
+    * [.send(targetEmail, fromAlias, subject, messageText, messageHtml)](#Email+send)
+    * [.sendToEntry(fromAlias, subject, messageText, messageHtml)](#Email+sendToEntry)
+
+<a name="new_Email_new"></a>
+
+### new Email(req)
+Helper to send emails based on available metadata.
+
+
+| Param | Type | Description |
+| --- | --- | --- |
+| req | [<code>Request</code>](#Request) | Request object to get metadata from |
+
+<a name="Email+send"></a>
+
+### email.send(targetEmail, fromAlias, subject, messageText, messageHtml)
+Sends email
+
+**Kind**: instance method of [<code>Email</code>](#Email)  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| targetEmail | <code>string</code> | Email address to send to |
+| fromAlias | <code>string</code> | Alias to display in email client |
+| subject | <code>string</code> | Email title |
+| messageText | <code>string</code> | Text-only version of the message |
+| messageHtml | <code>string</code> | Html version of the message |
+
+**Example**  
+```js
+await this.email.send(
+'john(a)doe.com',
+'Envoy <> ISE integration',
+'Greetings',
+'Hello',
+'<b>Hello</b>'
+)
+```
+<a name="Email+sendToEntry"></a>
+
+### email.sendToEntry(fromAlias, subject, messageText, messageHtml)
+Sends email to visitor
+
+**Kind**: instance method of [<code>Email</code>](#Email)  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| fromAlias | <code>string</code> | Alias to display in email client |
+| subject | <code>string</code> | Email title |
+| messageText | <code>string</code> | Text-only version of the message |
+| messageHtml | <code>string</code> | Html version of the message |
+
+**Example**  
+```js
+await this.email.sendToEntry(
+'Envoy <> ISE integration',
+'Greetings',
+'Hello',
+'<b>Hello</b>'
+)
+```
+<a name="EnvoyApi"></a>
+
+## EnvoyApi : <code>Object</code>
+Helper to make envoy api calls based on request metadata.
+
+**Kind**: global typedef  
+
+* [EnvoyApi](#EnvoyApi) : <code>Object</code>
+    * [new EnvoyApi()](#new_EnvoyApi_new)
+    * [.updateEventReport()](#EnvoyApi+updateEventReport)
+
+<a name="new_EnvoyApi_new"></a>
+
+### new EnvoyApi()
+Helper to make envoy api calls based on request metadata.
+
+<a name="EnvoyApi+updateEventReport"></a>
+
+### envoyApi.updateEventReport()
+Updates event status of a hub event. Useful for updating hub event status from a route.
+
+**Kind**: instance method of [<code>EnvoyApi</code>](#EnvoyApi)  
+**Properties**
+
+| Name | Type | Description |
+| --- | --- | --- |
+| eventReportId | <code>string</code> | hub event id |
+| statusSummary | <code>string</code> | readable status message of the event |
+| eventStatus | <code>&quot;in\_progress&quot;</code> \| <code>&quot;failed&quot;</code> \| <code>&quot;done&quot;</code> \| <code>&quot;ignored&quot;</code> | database friendly status |
+
+**Example**  
+```js
+await this.envoyApi.updateEventReport('11:22:33', 'Queued')
+```

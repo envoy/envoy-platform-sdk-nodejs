@@ -6,7 +6,7 @@
   "private": true,
   "scripts": {
     "test": "standard && nyc mocha -u bdd-lazy-var/getter -R dot test/**",
-    "generate-types-readme": "jsdoc2md -f index.js lib/* > types.md"
+    "generate-types-readme": "jsdoc2md -f index.js lib/request.js lib/response.js lib/sms.js lib/email.js lib/envoyApi.js > types.md"
   },
   "repository": {
     "type": "git",

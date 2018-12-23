@@ -21,14 +21,14 @@ const { reportError } = require('./lib/bugsnagHelper')
  */
 class Platform {
   /**
-   * @typedef PlatformOpts
+   * @typedef PlatformOptions
    * @property {string} baseDir - Base dir of the plugin
    * @property {string} baseUrl - Base url of Envoy API
   */
   /**
    * Envoy platform instance for AWS lambda deployments
    *
-   * @param {PlatformOpts} config - Configuration object
+   * @param {PlatformOptions} config - Configuration object
    * @example
    * const platform = new Platform({ baseDir: __dirname })
    */

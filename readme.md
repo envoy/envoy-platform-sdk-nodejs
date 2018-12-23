@@ -14,11 +14,16 @@ Run `npm install` to install the necessary packages.
 
 Store local environment variables in `.env.local` and production environment variables `.env.production`. Do not commit these files.
 
-## Setting up the plugin configuration
-...
+## Folder structure
+| Path | Description | Optional   |
+|-|-|-|
+| ./index.js |  Entry point. SDK should be loaded from here. It should export an AWS Lambda - compatible function. |  |
+| ./workers/<worker_name>.js | Exports a function to handle worker requests. Must end with one of the [job completion helpers](types.md#new-responseplatform-context-loggingprefix) | X |
+| ./routes/<route_name>.js | Exports a function to handle route requests. Must end with one of the [route completion helpers](types.md#Response+succeed) | X |
+| ./views/<view_name>.html | A HTML file to be served via [res.view()](types.md#responseviewpath-status) | X |
+| ./config/<default/production>.json | Configuration file to be stored in the release table. Describes expected plugin behaviour for Envoy API. This file is automatically exluded from the package sent to AWS Lambda. | |
 
-## Using the SDK
-[generated documentation](types.md)
+## [Using the SDK](types.md)
 
 ## Environment variables
 | Environment variable name    | required for | note         |

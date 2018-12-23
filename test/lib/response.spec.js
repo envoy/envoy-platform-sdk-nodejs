@@ -41,6 +41,12 @@ describe('Response', function () {
         ? expect($.successResponseBody).to.deep.equal(expectedBody)
         : expect($.failResponseBody).to.deep.include(expectedBody)
     })
+    it('should call response once', function () {
+      $.subject()
+      method === 'succeed'
+        ? expect($.context.succeed).to.have.been.calledOnce()
+        : expect($.context.fail).to.have.been.calledOnce()
+    })
   }
 
   describe('job actions', function () {
@@ -50,6 +56,16 @@ describe('Response', function () {
         'set_job_status': 'done',
         'set_job_status_message': 'Sent'
       }, { ok: true })
+      context('no return', function () {
+        def('subject', () => () => {
+          $.response.job_complete('Sent')
+          $.response.succeed({ ok: true })
+        })
+        itCreatesResponse({
+          'set_job_status': 'done',
+          'set_job_status_message': 'Sent'
+        }, { ok: true })
+      })
     })
     describe('jobIgnore', function () {
       def('subject', () => () => $.response.job_ignore('Not sent', 'no_user', { ok: true }))
@@ -58,6 +74,17 @@ describe('Response', function () {
         'set_job_status_message': 'Not sent',
         'set_job_failure_message': 'no_user'
       }, { ok: true })
+      context('no return', function () {
+        def('subject', () => () => {
+          $.response.job_ignore('Not sent', 'no_user')
+          $.response.succeed({ ok: true })
+        })
+        itCreatesResponse({
+          'set_job_status': 'ignored',
+          'set_job_status_message': 'Not sent',
+          'set_job_failure_message': 'no_user'
+        }, { ok: true })
+      })
     })
     describe('jobFail', function () {
       def('subject', () => () => $.response.job_fail('Not sent', 'error', { ok: false }))
@@ -66,6 +93,17 @@ describe('Response', function () {
         'set_job_status_message': 'Not sent',
         'set_job_failure_message': 'error'
       }, { ok: false })
+      context('no return', function () {
+        def('subject', () => () => {
+          $.response.job_fail('Not sent', 'error')
+          $.response.succeed()
+        })
+        itCreatesResponse({
+          'set_job_status': 'failed',
+          'set_job_status_message': 'Not sent',
+          'set_job_failure_message': 'error'
+        }, { })
+      })
     })
     describe('jobAttach', function () {
       def('subject', () => () => {
@@ -114,6 +152,16 @@ describe('Response', function () {
         'set_job_status': 'in_progress',
         'set_job_status_message': 'Queued'
       }, { ok: 'not yet' })
+      context('no return', function () {
+        def('subject', () => () => {
+          $.response.job_update('Queued')
+          $.response.succeed({ ok: 'not yet' })
+        })
+        itCreatesResponse({
+          'set_job_status': 'in_progress',
+          'set_job_status_message': 'Queued'
+        }, { ok: 'not yet' })
+      })
     })
     describe('pluginFail', function () {
       def('subject', () => () => $.response.plugin_fail('Not sent', 'error', { ok: false }))
@@ -123,6 +171,18 @@ describe('Response', function () {
         'set_job_failure_message': 'error',
         'set_install_status': 'failed'
       }, { ok: false })
+      context('no return', function () {
+        def('subject', () => () => {
+          $.response.plugin_fail('Not sent', 'error')
+          $.response.succeed({ ok: false })
+        })
+        itCreatesResponse({
+          'set_job_status': 'failed',
+          'set_job_status_message': 'Not sent',
+          'set_job_failure_message': 'error',
+          'set_install_status': 'failed'
+        }, { ok: false })
+      })
     })
   })
   describe('route actions', function () {

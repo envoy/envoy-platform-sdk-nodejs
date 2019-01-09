@@ -142,7 +142,7 @@ platform.route('signature-callback', function(req, res){
 | E_TWILIO_SID                 | this.sms.*   |              |
 | E_TWILIO_TOKEN               | this.sms.*   |              |
 | E_TWILIO_NUMBER              | this.sms.*   |              |
-| MANDRILL_API_KEY             | this.email.* |              |
+| SENDGRID_API_KEY             | this.email.* |              |
 | OAUTH_<app_id>_CLIENT_ID     | oauth config |              |
 | OAUTH_<app_id>_CLIENT_SECRET | oauth config |              |
 | OAUTH_<app_id>_AUTHORIZE_URL | oauth config |              |

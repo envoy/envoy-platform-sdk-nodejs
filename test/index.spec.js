@@ -138,8 +138,8 @@ describe('index', function () {
         awsRequestId: 'LAMBDA_INVOKE',
         logStreamName: 'LAMBDA_INVOKE'
       }
-      process.env.MANDRILL_API_KEY = 'apikey'
-      let mandrilSpy = sinon.spy()
+      process.env.SENDGRID_API_KEY = 'apikey'
+      let sendgridSpy = sinon.spy()
       let createTransportSpy = sinon.spy()
       let sendMailSpy = sinon.spy()
       let routeEvent = { name: 'route', request_meta: { route: 'welcome' } }
@@ -156,7 +156,7 @@ describe('index', function () {
               }
             }
           },
-          'nodemailer-mandrill-transport': mandrilSpy
+          'nodemailer-sendgrid': sendgridSpy
         })
       })
       let platformInstance = new Sdk({})
@@ -170,7 +170,7 @@ describe('index', function () {
       expect(context.succeed).to.have.been.called()
       let res = context.succeed.args[0][0]
       expect(res.body).to.deep.equal({ json: ['yes'] })
-      expect(mandrilSpy).to.have.been.calledWith({ auth: { apiKey: 'apikey' } })
+      expect(sendgridSpy).to.have.been.calledWith({ apiKey: 'apikey' })
       expect(createTransportSpy).to.have.been.called()
       expect(sendMailSpy).to.have.been.calledWith({
         from: 'alias <no-reply@envoy.com>',

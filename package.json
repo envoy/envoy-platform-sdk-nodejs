@@ -26,6 +26,7 @@
     "lodash.get": "^4.4.2",
     "nodemailer": "^4.6.8",
     "nodemailer-mandrill-transport": "^1.2.0",
+    "nodemailer-sendgrid": "^1.0.3",
     "request": "^2.88.0",
     "request-promise-native": "^1.0.5",
     "simple-oauth2": "^1.6.0",

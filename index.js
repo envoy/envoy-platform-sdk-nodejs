@@ -30,7 +30,7 @@ function registerUnhandledExceptionHandler () {
   global.isUnhandledExceptionHandlerRegistered = true
 }
 
-function initializeBugsnag() {
+function initializeBugsnag () {
   if (this.config.bugsnagKey) {
     global.bugsnagClient = bugsnag(this.config.bugsnagKey)
   }
@@ -54,7 +54,7 @@ function Platform (config) {
     self.registerWorker(name, handler)
   })
   registerUnhandledExceptionHandler()
-  initializeBugsnag()
+  initializeBugsnag.call(this)
 }
 Platform.prototype.handleError = function (event, e) {
   if (event.name === 'event' || (event.name === 'route' && this.req.job)) {

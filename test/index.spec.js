@@ -9,7 +9,7 @@ const expect = chai.expect
 let sandbox = null
 
 describe('index', function () {
-  this.timeout(20e3)
+  this.timeout(40e3)
   beforeEach(function () {
     sandbox = sinon.createSandbox()
   })
@@ -35,9 +35,20 @@ describe('index', function () {
       let res = context.succeed.args[0][0]
       expect(res.body).to.deep.equal({ json: ['yes'] })
     })
-    it('should send sms to entry if there are no issues', async function () {
+    it('should send sms to entry if there are no issues', function (done) {
       let context = {
-        succeed: sinon.spy(),
+        succeed: sinon.spy(function () {
+          try {
+            let res = context.succeed.args[0][0]
+            expect(res.body).to.deep.equal({ json: ['yes'] })
+            expect(twilioSendSpy).to.have.been.called()
+            expect(twilioSendSpy.args[0][1]).to.deep.equal({ message: 'hello' })
+            expect(context.fail).to.not.have.been.called()
+          } catch (err) {
+            return done(err)
+          }
+          done()
+        }),
         fail: sinon.spy(),
         awsRequestId: 'LAMBDA_INVOKE',
         logStreamName: 'LAMBDA_INVOKE'
@@ -59,13 +70,7 @@ describe('index', function () {
         res.json(['yes'])
       })
       let handler = platformInstance.getHandler()
-      await handler(routeEvent, context)
-      expect(context.fail).to.not.have.been.called()
-      expect(context.succeed).to.have.been.called()
-      let res = context.succeed.args[0][0]
-      expect(res.body).to.deep.equal({ json: ['yes'] })
-      expect(twilioSendSpy).to.have.been.called()
-      expect(twilioSendSpy.args[0][1]).to.deep.equal({ message: 'hello' })
+      handler(routeEvent, context)
     })
     it('should return json if there are no issues', function () {
       let context = {
@@ -85,14 +90,33 @@ describe('index', function () {
       let res = context.succeed.args[0][0]
       expect(res.body).to.deep.equal({ json: ['yes'] })
     })
-    it('should update event report when necessary', async function () {
+    it('should update event report when necessary', function (done) {
+      let putSpy = sinon.spy()
       let context = {
-        succeed: sinon.spy(),
+        succeed: sinon.spy(function () {
+          try {
+            expect(context.fail).to.not.have.been.called()
+            let res = context.succeed.args[0][0]
+            expect(res.body).to.deep.equal({ json: ['yes'] })
+            expect(putSpy).to.have.been.called()
+            expect(putSpy.args[0][0]).to.equal('https://app.envoy.com/a/hub/v1/event_reports/eid')
+            expect(putSpy.args[0][1]).to.deep.equal({
+              json: true,
+              body: {
+                status: 'done',
+                status_message: 'Sent',
+                failure_reason: null
+              }
+            })
+          } catch (err) {
+            return done(err)
+          }
+          done()
+        }),
         fail: sinon.spy(),
         awsRequestId: 'LAMBDA_INVOKE',
         logStreamName: 'LAMBDA_INVOKE'
       }
-      let putSpy = sinon.spy()
       let routeEvent = {
         name: 'route',
         request_meta: {
@@ -115,33 +139,39 @@ describe('index', function () {
         res.json(['yes'])
       })
       let handler = platformInstance.getHandler()
-      await handler(routeEvent, context)
-      expect(context.fail).to.not.have.been.called()
-      expect(context.succeed).to.have.been.called()
-      let res = context.succeed.args[0][0]
-      expect(res.body).to.deep.equal({ json: ['yes'] })
-      expect(putSpy).to.have.been.called()
-      expect(putSpy.args[0][0]).to.equal('https://app.envoy.com/a/hub/v1/event_reports/eid')
-      expect(putSpy.args[0][1]).to.deep.equal({
-        json: true,
-        body: {
-          status: 'done',
-          status_message: 'Sent',
-          failure_reason: null
-        }
-      })
+      handler(routeEvent, context)
     })
-    it('should send email to entry if there are no issues', async function () {
+    it('should send email to entry if there are no issues', function (done) {
+      let sendgridSpy = sinon.spy()
+      let createTransportSpy = sinon.spy()
+      let sendMailSpy = sinon.spy()
       let context = {
-        succeed: sinon.spy(),
+        succeed: sinon.spy(function () {
+          try {
+            expect(context.fail).to.not.have.been.called()
+            let res = context.succeed.args[0][0]
+            expect(res.body).to.deep.equal({ json: ['yes'] })
+            expect(sendgridSpy).to.have.been.calledWith({ apiKey: 'apikey' })
+            expect(createTransportSpy).to.have.been.called()
+            expect(sendMailSpy).to.have.been.calledWith({
+              attachments: [],
+              from: 'alias <no-reply@envoy.com>',
+              html: 'hello3',
+              subject: 'hello1',
+              text: 'hello2',
+              to: 'x@gmail.com'
+            })
+          } catch (err) {
+            return done(err)
+          }
+          done()
+        }),
         fail: sinon.spy(),
         awsRequestId: 'LAMBDA_INVOKE',
         logStreamName: 'LAMBDA_INVOKE'
       }
       process.env.SENDGRID_API_KEY = 'apikey'
-      let sendgridSpy = sinon.spy()
-      let createTransportSpy = sinon.spy()
-      let sendMailSpy = sinon.spy()
+
       let routeEvent = { name: 'route', request_meta: { route: 'welcome' } }
       let Sdk = proxyquire('../index', {
         './lib/email': proxyquire('../lib/email', {
@@ -165,20 +195,7 @@ describe('index', function () {
         res.json(['yes'])
       })
       let handler = platformInstance.getHandler()
-      await handler(routeEvent, context)
-      expect(context.fail).to.not.have.been.called()
-      expect(context.succeed).to.have.been.called()
-      let res = context.succeed.args[0][0]
-      expect(res.body).to.deep.equal({ json: ['yes'] })
-      expect(sendgridSpy).to.have.been.calledWith({ apiKey: 'apikey' })
-      expect(createTransportSpy).to.have.been.called()
-      expect(sendMailSpy).to.have.been.calledWith({
-        from: 'alias <no-reply@envoy.com>',
-        html: 'hello3',
-        subject: 'hello1',
-        text: 'hello2',
-        to: 'x@gmail.com'
-      })
+      handler(routeEvent, context)
     })
     it('should call .error in case of unhandled synchronous error', function () {
       let context = {

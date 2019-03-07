@@ -8,6 +8,7 @@ chai.use(sinonChai)
 chai.use(dirtyChai)
 
 describe('twilioHelper | send', function () {
+  this.timeout(40e3)
   beforeEach(function () {
     process.env = {
       E_TWILIO_SID: 'sid',
@@ -66,7 +67,7 @@ describe('twilioHelper | send', function () {
         attributes: {
           'user-data': [{
             field: 'Phone number special',
-            value: '716321124'
+            value: '+420716321124'
           }]
         }
       }
@@ -76,7 +77,7 @@ describe('twilioHelper | send', function () {
     expect(this.twilioSendStub).to.have.been.calledWith({
       body: 'Hello World',
       from: '000000000',
-      to: '716321124'
+      to: '+420716321124'
     })
   })
   it('should process send sms requests normally if country is not available', async function () {
@@ -86,7 +87,7 @@ describe('twilioHelper | send', function () {
         attributes: {
           'user-data': [{
             field: 'Phone number special',
-            value: '716321124'
+            value: '+420716321124'
           }]
         }
       }
@@ -96,8 +97,23 @@ describe('twilioHelper | send', function () {
     expect(this.twilioSendStub).to.have.been.calledWith({
       body: 'Hello World',
       from: '000000000',
-      to: '716321124'
+      to: '+420716321124'
     })
+  })
+  it('should fail if country is not available and number is not internationally formatted', async function () {
+    this.twilioSendStub.resolves('Sent')
+    let req = {
+      body: {
+        attributes: {
+          'user-data': [{
+            field: 'Phone number special',
+            value: '5165825765'
+          }]
+        }
+      }
+    }
+    let ret = await this.subject(req, { message: 'Hello World' })
+    expect(ret).to.equal('No valid phone number provided')
   })
   it('should return twilio errors', async function () {
     let notSentError = new Error('Not Sent')
@@ -170,7 +186,7 @@ describe('twilioHelper | send', function () {
       }
     }
     let ret = await this.subject(req, { message: 'Hello World' })
-    expect(ret).to.equal('No phone number provided')
+    expect(ret).to.equal('No valid phone number provided')
     expect(this.twilioSendStub).to.not.have.been.called()
   })
   it('should not send sms if message is missing', async function () {

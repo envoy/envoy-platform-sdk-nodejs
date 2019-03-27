@@ -115,6 +115,32 @@ describe('twilioHelper | send', function () {
     let ret = await this.subject(req, { message: 'Hello World' })
     expect(ret).to.equal('No valid phone number provided')
   })
+  it('should not fail if country is available and number is internationally formatted with a different country', async function () {
+    this.twilioSendStub.resolves('Sent')
+    let req = {
+      location: {
+        attributes: {
+          country: 'cz'
+        }
+      },
+      body: {
+        attributes: {
+          'user-data': [{
+            field: 'Phone number special',
+            value: '+5165825765'
+          }]
+        }
+      }
+    }
+
+    let ret = await this.subject(req, { message: 'Hello World' })
+    expect(ret).to.equal('Sent')
+    expect(this.twilioSendStub).to.have.been.calledWith({
+      body: 'Hello World',
+      from: '000000000',
+      to: '+5165825765'
+    })
+  })
   it('should return twilio errors', async function () {
     let notSentError = new Error('Not Sent')
     this.twilioSendStub.rejects(notSentError)

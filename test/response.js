@@ -16,13 +16,19 @@ describe('response', function () {
       res.storage_unset('baz')
       res.storage_set('bool', false)
       res.storage_unset('bat')
+      res.storage_set_unique('something')
+      res.storage_set_unique('with_chars', { chars: 'abcdefg' })
+      res.storage_set_unique('with_size', { size: 3 })
       res._respond()
       expect(out.meta.storage_updates).to.deep.equal([
         { action: 'set', key: 'foo', value: 'bar' },
         { action: 'set', key: 'a', value: { b: 'c' } },
         { action: 'unset', key: 'baz' },
         { action: 'set', key: 'bool', value: false },
-        { action: 'unset', key: 'bat' }
+        { action: 'unset', key: 'bat' },
+        { action: 'set_unique', key: 'something' },
+        { action: 'set_unique', key: 'with_chars', chars: 'abcdefg' },
+        { action: 'set_unique', key: 'with_size', size: 3 }
       ])
     })
   })

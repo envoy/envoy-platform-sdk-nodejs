@@ -5,16 +5,10 @@ describe('request', function () {
   it('should set the storage property if storage items are present', function () {
     const src = {
       plugin_install: {
-        plugin_storage_items: [
-          {
-            key: 'foo',
-            value: 'bar'
-          },
-          {
-            key: 'a',
-            value: 'b'
-          }
-        ]
+        storage: {
+          foo: 'bar',
+          a: 'b'
+        }
       }
     }
     const req = new Request({}, src, {})

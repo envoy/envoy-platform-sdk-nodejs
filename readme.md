@@ -4,11 +4,8 @@ This plugin is setup to handle events, routing, and intercept synchronous flows 
 
 ## Requirements
 - `node >8`
-- `envoy-plugin` - https://github.com/envoy/envoy-plugin-cli
 
 ## Setup
-
-Get started by [following the instructions](https://github.com/envoy/https://github.com/envoy/envoy-plugin-cli) in the `https://github.com/envoy/envoy-plugin-cli` package. 
 
 Run `npm install` to install the necessary packages.
 

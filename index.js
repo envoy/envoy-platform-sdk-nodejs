@@ -81,7 +81,7 @@ Platform.prototype.getLoggingSignature = function () {
   ` ::`
 }
 Platform.prototype.getHandler = function () {
-  return (event, context, callback) => {
+  return async (event, context) => {
     try {
       this.res = new Response(this, context)
       this.req = new Request(this, event, context)
@@ -95,18 +95,14 @@ Platform.prototype.getHandler = function () {
       if (!event.name) {
         throw new Error('Event issued did not include action.')
       }
-      let ret = null
-      if (event.name === 'route') {
-        ret = this._handleRoute(event, context)
-      }
-      if (event.name === 'event') {
-        ret = this._handleEvent(event, context)
-      }
-      if (ret instanceof Promise) {
-        ret.catch(e => this.handleError(event, e))
+      switch (event.name) {
+        case 'route':
+          return this._handleRoute(event, context)
+        case 'event':
+          return this._handleEvent(event, context)
       }
     } catch (e) {
-      this.handleError(event, e)
+      return this.handleError(event, e)
     }
   }
 }

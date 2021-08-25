@@ -25,7 +25,7 @@
     "debug": "^3.1.0",
     "libphonenumber-js": "^1.7.10",
     "lodash.get": "^4.4.2",
-    "nodemailer": "^4.6.8",
+    "nodemailer": "^6.4.16",
     "nodemailer-sendgrid": "^1.0.3",
     "request": "^2.88.0",
     "request-promise-native": "^1.0.5",

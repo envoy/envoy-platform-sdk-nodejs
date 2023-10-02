@@ -22,7 +22,7 @@
   },
   "dependencies": {
     "@bugsnag/js": "^5.2.0",
-    "debug": "^3.1.0",
+    "debug": "^3.2.7",
     "libphonenumber-js": "^1.10.28",
     "lodash.get": "^4.4.2",
     "nodemailer": "^6.6.1",

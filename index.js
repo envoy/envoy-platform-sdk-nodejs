@@ -7,7 +7,7 @@ const Sms = require('./lib/sms')
 const Email = require('./lib/email')
 const oauth2Routes = require('./lib/oauth2Routes')
 const get = require('lodash.get')
-const request = require('request-promise-native')
+const axios = require('axios')
 const bugsnag = require('@bugsnag/js')
 
 process.env.DEBUG = process.env.DEBUG || 'envoy*'
@@ -148,14 +148,12 @@ Platform.prototype.getRouteLink = function (path, queryParams = {}) {
 Platform.prototype.eventUpdate = async function (statusSummary, failureReason = null, eventStatus = 'in_progress') {
   let eventReportId = this.req.event_report_id || this.req.params.event_report_id
   let eventReportUrl = `${this.config.baseUrl}/a/hub/v1/event_reports/${eventReportId}`
-  return request.put(eventReportUrl, {
-    json: true,
-    body: {
-      status: eventStatus,
-      status_message: statusSummary,
-      failure_reason: failureReason
-    }
+  const response = await axios.put(eventReportUrl, {
+    status: eventStatus,
+    status_message: statusSummary,
+    failure_reason: failureReason
   })
+  return response.data
 }
 Platform.prototype.eventComplete = async function (statusMessage) {
   return this.eventUpdate(statusMessage, null, 'done')
